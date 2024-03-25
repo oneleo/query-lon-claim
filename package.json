@@ -1,0 +1,21 @@
+{
+  "name": "query-lon-claim",
+  "license": "MIT",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ query-lon-claim",
+    "create-local": "graph create --node http://localhost:8020/ query-lon-claim",
+    "remove-local": "graph remove --node http://localhost:8020/ query-lon-claim",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 query-lon-claim",
+    "test": "graph test"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.69.0",
+    "@graphprotocol/graph-ts": "0.32.0"
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.2.1",
+    "matchstick-as": "0.5.0"
+  }
+}

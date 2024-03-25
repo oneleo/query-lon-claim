@@ -1,3 +1,7 @@
+# Subgraph
+build/
+generated/
+
 # Logs
 logs
 *.log

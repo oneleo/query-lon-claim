@@ -1,0 +1,32 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: MerkleRedeem
+    network: mainnet
+    source:
+      address: "0x0000000006a0403952389B70d8EE4E45479023db"
+      abi: MerkleRedeem
+      startBlock: 11494392
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Claimed
+        - OwnerChanged
+        - OwnerNominated
+      abis:
+        - name: MerkleRedeem
+          file: ./abis/MerkleRedeem.json
+      eventHandlers:
+        - event: Claimed(indexed address,uint256)
+          handler: handleClaimed
+        - event: OwnerChanged(indexed address,indexed address)
+          handler: handleOwnerChanged
+        - event: OwnerNominated(indexed address)
+          handler: handleOwnerNominated
+      file: ./src/merkle-redeem.ts

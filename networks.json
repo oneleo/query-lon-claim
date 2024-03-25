@@ -1,0 +1,8 @@
+{
+  "mainnet": {
+    "MerkleRedeem": {
+      "address": "0x0000000006a0403952389B70d8EE4E45479023db",
+      "startBlock": 11494392
+    }
+  }
+}
