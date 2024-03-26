@@ -5,6 +5,38 @@ type Claimed @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
+  transactionInput: Bytes!
+  transactionInputLength: Int!
+  transactionMethodId: Bytes!
+  transactionMethodId02: Bytes!
+  transactionMethodId03: Bytes!
+  transactionMethodId04: Bytes!
+  transactionMethodId05: Bytes!
+  transactionMethodId06: Bytes!
+  transactionMethodId07: Bytes!
+  transactionMethodId08: Bytes!
+  transactionMethodId09: Bytes!
+  transactionMethodId10: Bytes!
+  transactionMethodId11: Bytes!
+  transactionMethodId12: Bytes!
+  transactionMethodName: String!
+}
+
+type ClaimedTotal @entity(immutable: false) {
+  id: Bytes! # always 1
+  total: BigInt! # uint256
+}
+
+type ClaimedTotalByRecipient @entity(immutable: false) {
+  id: Bytes!
+  recipient: String!
+  total: BigInt! # uint256
+}
+
+type ClaimedTotalByFrom @entity(immutable: false) {
+  id: Bytes!
+  from: String!
+  total: BigInt! # uint256
 }
 
 type OwnerChanged @entity(immutable: true) {

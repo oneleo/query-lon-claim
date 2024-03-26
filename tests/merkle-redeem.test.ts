@@ -10,7 +10,10 @@ import {
 import { Claimed as ClaimedEvent } from "../generated/MerkleRedeem/MerkleRedeem"
 import { Claimed } from "../generated/schema"
 import { handleClaimed } from "../src/merkle-redeem"
-import { createClaimedEvent } from "./merkle-redeem-utils"
+import {
+  createClaimedEvent,
+  createclaimPeriodEvent
+} from "./merkle-redeem-utils"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/developer/matchstick/#tests-structure-0-5-0
@@ -21,7 +24,8 @@ describe("Describe entity assertions", () => {
       "0x0000000000000000000000000000000000000001"
     )
     let balance = BigInt.fromI32(234)
-    let newClaimedEvent = createClaimedEvent(recipient, balance)
+    // let newClaimedEvent = createClaimedEvent(recipient, balance)
+    let newClaimedEvent = createclaimPeriodEvent(recipient, balance)
     handleClaimed(newClaimedEvent)
   })
 
