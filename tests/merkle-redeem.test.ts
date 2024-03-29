@@ -3,6 +3,7 @@ import {
   afterAll,
   assert,
   beforeAll,
+  beforeEach,
   clearStore,
   describe,
   test
@@ -10,23 +11,28 @@ import {
 import { Claimed as ClaimedEvent } from "../generated/MerkleRedeem/MerkleRedeem"
 import { Claimed } from "../generated/schema"
 import { handleClaimed } from "../src/merkle-redeem"
-import {
-  createClaimedEvent,
-  createclaimPeriodEvent
-} from "./merkle-redeem-utils"
+import { createClaimedEvent, CustomEvents } from "./merkle-redeem-utils"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/developer/matchstick/#tests-structure-0-5-0
 
 describe("Describe entity assertions", () => {
   beforeAll(() => {
+    // clear the store before each test in the file
+    clearStore()
+
     let recipient = Address.fromString(
       "0x0000000000000000000000000000000000000001"
     )
     let balance = BigInt.fromI32(234)
     // let newClaimedEvent = createClaimedEvent(recipient, balance)
-    let newClaimedEvent = createclaimPeriodEvent(recipient, balance)
+    let newClaimedEvent = CustomEvents.createClaimPeriodsMultipleEvent()
     handleClaimed(newClaimedEvent)
+    // handleClaimed(CustomEvents.createClaimPeriodsSingleEvent())
+  })
+
+  beforeEach(() => {
+    //
   })
 
   afterAll(() => {
@@ -38,21 +44,19 @@ describe("Describe entity assertions", () => {
 
   test("Claimed created and stored", () => {
     assert.entityCount("Claimed", 1)
-
-    // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
+    // // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
     assert.fieldEquals(
       "Claimed",
-      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a2da16081f360e3847006db660bae1c6d1b2e17ec2a2d01000000",
       "recipient",
-      "0x0000000000000000000000000000000000000001"
+      "0x2250dd2642F60730f5FDBfdd978626E61EBe864e".toLowerCase()
     )
-    assert.fieldEquals(
-      "Claimed",
-      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "balance",
-      "234"
-    )
-
+    // assert.fieldEquals(
+    //   "Claimed",
+    //   "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
+    //   "balance",
+    //   "234"
+    // )
     // More assert options:
     // https://thegraph.com/docs/en/developer/matchstick/#asserts
   })

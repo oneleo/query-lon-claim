@@ -1,25 +1,33 @@
+enum MethodName {
+  claimPeriod
+  claimPeriods
+  execute
+  unknown
+}
+
 type Claimed @entity(immutable: true) {
   id: Bytes!
   recipient: Bytes! # address
   balance: BigInt! # uint256
+  periodsLength: Int!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
-  transactionInput: Bytes!
-  transactionInputLength: Int!
   transactionMethodId: Bytes!
-  transactionMethodId02: Bytes!
-  transactionMethodId03: Bytes!
-  transactionMethodId04: Bytes!
-  transactionMethodId05: Bytes!
-  transactionMethodId06: Bytes!
-  transactionMethodId07: Bytes!
-  transactionMethodId08: Bytes!
-  transactionMethodId09: Bytes!
-  transactionMethodId10: Bytes!
-  transactionMethodId11: Bytes!
-  transactionMethodId12: Bytes!
-  transactionMethodName: String!
+  transactionMethodName: MethodName!
+}
+
+type ClaimedByPeriod @entity(immutable: true) {
+  id: Bytes!
+  from: Bytes! # address
+  recipient: Bytes! # address
+  period: BigInt # could be null
+  balance: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  transactionMethodId: Bytes!
+  transactionMethodName: MethodName!
 }
 
 type ClaimedTotal @entity(immutable: false) {
@@ -29,13 +37,13 @@ type ClaimedTotal @entity(immutable: false) {
 
 type ClaimedTotalByRecipient @entity(immutable: false) {
   id: Bytes!
-  recipient: String!
+  recipient: Bytes! # address
   total: BigInt! # uint256
 }
 
 type ClaimedTotalByFrom @entity(immutable: false) {
   id: Bytes!
-  from: String!
+  from: Bytes! # address
   total: BigInt! # uint256
 }
 
