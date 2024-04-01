@@ -34,6 +34,7 @@ export namespace MethodId {
   // function: claimPeriod(address recipient, uint256 period, uint256 balance, bytes32[] memory proof)
   export const claimPeriod = "0x8dbfd5e8" // = keccak256(abi.encodePacked("claimPeriod(address,uint256,uint256,bytes32[])"))
   // function: function claimPeriods(address recipient, Claim[] memory claims)
+  //   ∟ struct Claim{uint256 period; uint256 balance; bytes32[] proof;}
   export const claimPeriods = "0xb03d8c2f" // = keccak256(abi.encodePacked("claimPeriods(address,(uint256,uint256,bytes32[])[])"))
   // function: execute(address _target, bytes _data)
   export const execute = "0x1cff79cd" // = keccak256(abi.encodePacked("execute(address,bytes)"))
@@ -58,6 +59,10 @@ export const getEventId = (e: ethereum.Event): Bytes => {
     .concat(transactionHash)
     .concat(dashBytes)
     .concatI32(logIndex.toI32())
+}
+
+export const concatIndex = (id: Bytes, index: i32): Bytes => {
+  return id.concat(Bytes.fromUTF8("-")).concat(Bytes.fromI32(index))
 }
 
 export const getMethod = (methodId: Bytes): Method => {
@@ -124,7 +129,10 @@ export function handleClaimed(event: ClaimedEvent): void {
   const method = getMethod(methodId)
   const methodName = getMethodName(methodId)
 
-  // Update total
+  // ----------
+  // Update ClaimedTotal entity
+  // ----------
+
   let claimedTotalEntity = ClaimedTotalEntity.load(one)
   // In the Subgraph handler, using === always returns false. Please use == for comparison.
   if (claimedTotalEntity == null) {
@@ -132,8 +140,13 @@ export function handleClaimed(event: ClaimedEvent): void {
     claimedTotalEntity.total = zero
   }
   claimedTotalEntity.total = claimedTotalEntity.total.plus(balance)
+  // Save the entity to the store
+  claimedTotalEntity.save()
 
-  // Update total by from
+  // ----------
+  // Update ClaimedTotalByFrom entity
+  // ----------
+
   let claimedTotalByFromEntity = ClaimedTotalByFromEntity.load(from)
   if (claimedTotalByFromEntity == null) {
     claimedTotalByFromEntity = new ClaimedTotalByFromEntity(from)
@@ -141,8 +154,13 @@ export function handleClaimed(event: ClaimedEvent): void {
     claimedTotalByFromEntity.total = zero
   }
   claimedTotalByFromEntity.total = claimedTotalByFromEntity.total.plus(balance)
+  // Save the entity to the store
+  claimedTotalByFromEntity.save()
 
-  // Update total by recipient
+  // ----------
+  // Update claimedTotalByRecipient entity
+  // ----------
+
   let claimedTotalByRecipientEntity =
     ClaimedTotalByRecipientEntity.load(recipient)
   if (claimedTotalByRecipientEntity == null) {
@@ -152,9 +170,15 @@ export function handleClaimed(event: ClaimedEvent): void {
   }
   claimedTotalByRecipientEntity.total =
     claimedTotalByRecipientEntity.total.plus(balance)
+  // Save the entity to the store
+  claimedTotalByRecipientEntity.save()
 
+  // ----------
   // Create Claimed entity
+  // ----------
+
   const claimedEntity = new ClaimedEntity(id)
+  claimedEntity.from = from
   claimedEntity.recipient = recipient
   claimedEntity.balance = balance
   claimedEntity.blockNumber = blockNumber
@@ -219,8 +243,15 @@ export function handleClaimed(event: ClaimedEvent): void {
   const periodsLength = periods.length
   claimedEntity.periodsLength = periodsLength
 
-  for (let i = 0; i < periodsLength; i++) {
-    const idWithIndex = id.concat(Bytes.fromUTF8("-")).concat(Bytes.fromI32(i))
+  // Save the entity to the store
+  claimedEntity.save()
+
+  // ----------
+  // Create ClaimedByPeriod entity
+  // ----------
+
+  for (let i: i32 = 0; i < periodsLength; i++) {
+    const idWithIndex = concatIndex(id, i)
     // Create ClaimedByRecipient entity
     const claimedByPeriodEntity = new ClaimedByPeriodEntity(idWithIndex)
     claimedByPeriodEntity.from = from
@@ -233,6 +264,9 @@ export function handleClaimed(event: ClaimedEvent): void {
     claimedByPeriodEntity.transactionMethodId = methodId
     claimedByPeriodEntity.transactionMethodName = methodName
 
+    // Save the entity to the store
+    claimedByPeriodEntity.save()
+
     log.info("[test] period: {}, balance: {}", [
       periods[i] ? periods[i]!.toString() : "null",
       balances[i].toString()
@@ -241,19 +275,19 @@ export function handleClaimed(event: ClaimedEvent): void {
 
   //   log.info("[log] id: {}", [id.toHexString()])
 
-  log.info(
-    "[log] transactionHash: {}, methodId: {}, methodName: {}, from: {}, recipient: {}, balance: {}, periodsLength: {}, transactionInput: {}",
-    [
-      transactionHash.toHexString(),
-      methodId.toHexString(),
-      methodName,
-      from.toHexString(),
-      recipient.toHexString(),
-      balance.toString(),
-      periodsLength.toString(),
-      transactionInput.toHexString()
-    ]
-  )
+  //   log.info(
+  //     "[log] transactionHash: {}, methodId: {}, methodName: {}, from: {}, recipient: {}, balance: {}, periodsLength: {}, transactionInput: {}",
+  //     [
+  //       transactionHash.toHexString(),
+  //       methodId.toHexString(),
+  //       methodName,
+  //       from.toHexString(),
+  //       recipient.toHexString(),
+  //       balance.toString(),
+  //       periodsLength.toString(),
+  //       transactionInput.toHexString()
+  //     ]
+  //   )
 
   // TODO: decode calldata
   // Refer: https://thegraph.com/docs/en/developing/graph-ts/api/#encodingdecoding-abi
@@ -346,8 +380,6 @@ export function handleClaimed(event: ClaimedEvent): void {
   //   log.info("claimPeriod: end of proof: {}", [
   //     proof[proof.length - 1].toHexString()
   //   ])
-
-  claimedEntity.save()
 }
 
 export function handleOwnerChanged(event: OwnerChangedEvent): void {
@@ -365,6 +397,7 @@ export function handleOwnerChanged(event: OwnerChangedEvent): void {
     entity.transactionHash.toHexString()
   ])
 
+  // Save the entity to the store
   entity.save()
 }
 
@@ -382,5 +415,6 @@ export function handleOwnerNominated(event: OwnerNominatedEvent): void {
     entity.transactionHash.toHexString()
   ])
 
+  // Save the entity to the store
   entity.save()
 }

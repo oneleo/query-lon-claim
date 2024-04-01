@@ -7,6 +7,7 @@ enum MethodName {
 
 type Claimed @entity(immutable: true) {
   id: Bytes!
+  from: Bytes! # address
   recipient: Bytes! # address
   balance: BigInt! # uint256
   periodsLength: Int!
@@ -31,19 +32,19 @@ type ClaimedByPeriod @entity(immutable: true) {
 }
 
 type ClaimedTotal @entity(immutable: false) {
-  id: Bytes! # always 1
-  total: BigInt! # uint256
-}
-
-type ClaimedTotalByRecipient @entity(immutable: false) {
-  id: Bytes!
-  recipient: Bytes! # address
+  id: Bytes! # is always Bytes.fromI32(1)
   total: BigInt! # uint256
 }
 
 type ClaimedTotalByFrom @entity(immutable: false) {
-  id: Bytes!
+  id: Bytes! # equals the from
   from: Bytes! # address
+  total: BigInt! # uint256
+}
+
+type ClaimedTotalByRecipient @entity(immutable: false) {
+  id: Bytes! # equals the recipient
+  recipient: Bytes! # address
   total: BigInt! # uint256
 }
 

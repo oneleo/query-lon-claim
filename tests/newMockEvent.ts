@@ -9,7 +9,7 @@ import { TransactionInputSample } from "./transactionInputSample"
 
 // Refer: node_modules/matchstick-as/assembly/defaults.ts
 const defaultAddress = Address.fromString(
-  "0xA16081F360e3847006dB660bae1c6d1b2e17eC2A"
+  "0x0000000006a0403952389B70d8EE4E45479023db" // Tokenlon: Merkle Redeem
 )
 const defaultAddressBytes = defaultAddress as Bytes
 const defaultBigInt = BigInt.fromI32(1)
@@ -99,12 +99,12 @@ function newLog(): ethereum.Log {
 
 // Custom transactions
 export namespace CustomTransactions {
+  // Refer: https://etherscan.io/tx/0x126017fe53cb762222313c4fe92de096544ed325d32b472f9c302cd992e628f2
   export const newClaimPeriodTransaction = (): ethereum.Transaction => {
-    // Refer: https://etherscan.io/tx/0x126017fe53cb762222313c4fe92de096544ed325d32b472f9c302cd992e628f2
     return new ethereum.Transaction(
       defaultAddressBytes,
       defaultBigInt,
-      defaultAddress,
+      Address.fromString("0x90e5e30d3A891693d6822e06b52562Dd4dBacC83"),
       defaultAddress,
       defaultBigInt,
       defaultBigInt,
@@ -119,7 +119,7 @@ export namespace CustomTransactions {
     return new ethereum.Transaction(
       defaultAddressBytes,
       defaultBigInt,
-      defaultAddress,
+      Address.fromString("0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"),
       defaultAddress,
       defaultBigInt,
       defaultBigInt,
@@ -135,7 +135,7 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        defaultAddress,
+        Address.fromString("0x2250dd2642F60730f5FDBfdd978626E61EBe864e"),
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
@@ -150,7 +150,7 @@ export namespace CustomTransactions {
     return new ethereum.Transaction(
       defaultAddressBytes,
       defaultBigInt,
-      defaultAddress,
+      Address.fromString("0x4eD51224672aaD35d50F2ee49b0fdC9958618d38"),
       defaultAddress,
       defaultBigInt,
       defaultBigInt,
@@ -166,7 +166,7 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        defaultAddress,
+        Address.fromString("0x789BCf674A8f5800840823a51aA45fb8bcbC323A"),
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
@@ -182,7 +182,7 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        defaultAddress,
+        Address.fromString("0x409bEDe01f0c2DDbffa5dcDf5c4b7d97E1b5080F"),
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
@@ -198,7 +198,7 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        defaultAddress,
+        Address.fromString("0x0a70AF3B3bD506465bB73E8d9F738111ff8b0D62"),
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
