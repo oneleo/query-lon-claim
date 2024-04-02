@@ -447,9 +447,14 @@ describe("Describe entity assertions", () => {
         "Claimed",
         idString,
         "balances",
-        "[]" // because it has an unknown period
+        arrayToString(balances)
       )
-      assert.fieldEquals("Claimed", idString, "periods", "[]") // because it has an unknown period
+      assert.fieldEquals(
+        "Claimed",
+        idString,
+        "periods",
+        arrayToString([BigInt.fromI32(i32.MAX_VALUE)])
+      ) // Employing i32.MAX_VALUE as the unknown period value.
 
       for (let i: i32 = 0; i < periodsLength; i++) {
         // The period checks

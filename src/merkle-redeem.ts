@@ -1,5 +1,6 @@
 import {
   Address,
+  bigInt,
   BigInt,
   ByteArray,
   Bytes,
@@ -207,12 +208,18 @@ export function handleClaimed(event: ClaimedEvent): void {
       claimedEntity.transactionMethodName = MethodName.execute
       periods.push(null)
       balances.push(balance)
+      // Employing i32.MAX_VALUE as the unknown period value.
+      nonNullPeriods.push(BigInt.fromI32(i32.MAX_VALUE))
+      nonNullBalances.push(balance)
       break
     }
     default: {
       claimedEntity.transactionMethodName = MethodName.unknown
       periods.push(null)
       balances.push(balance)
+      // Employing i32.MAX_VALUE as the unknown period value.
+      nonNullPeriods.push(BigInt.fromI32(i32.MAX_VALUE))
+      nonNullBalances.push(balance)
       break
     }
   }
