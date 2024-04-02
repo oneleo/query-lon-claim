@@ -143,7 +143,7 @@ export namespace CustomEvents {
   }
 
   // Refer: https://etherscan.io/tx/0xe78ecb606b56b4393acf9b46f0ceb53edfc4fabf23ee6c4d6c8d9d90aa41dc53#eventlog
-  export const createExecuteEvent4 = (): Claimed => {
+  export const createExecuteEvent = (): Claimed => {
     const recipient = Address.fromString(
       "0x3021B1A8bB7d73d0afaA3537040EfAb630dB2958"
     )

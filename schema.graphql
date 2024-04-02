@@ -10,7 +10,9 @@ type Claimed @entity(immutable: true) {
   from: Bytes! # address
   recipient: Bytes! # address
   balance: BigInt! # uint256
-  periodsLength: Int!
+  balances: [BigInt!]! # uint256[]
+  periods: [BigInt!]! # uint256[]
+  periodsLength: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -33,19 +35,22 @@ type ClaimedByPeriod @entity(immutable: true) {
 
 type ClaimedTotal @entity(immutable: false) {
   id: Bytes! # is always Bytes.fromI32(1)
-  total: BigInt! # uint256
+  totalBalance: BigInt! # uint256
+  totalClaimed: BigInt! # uint256
 }
 
 type ClaimedTotalByFrom @entity(immutable: false) {
   id: Bytes! # equals the from
   from: Bytes! # address
-  total: BigInt! # uint256
+  totalPeriod: BigInt! # uint256
+  totalBalance: BigInt! # uint256
 }
 
 type ClaimedTotalByRecipient @entity(immutable: false) {
   id: Bytes! # equals the recipient
   recipient: Bytes! # address
-  total: BigInt! # uint256
+  totalPeriod: BigInt! # uint256
+  totalBalance: BigInt! # uint256
 }
 
 type OwnerChanged @entity(immutable: true) {

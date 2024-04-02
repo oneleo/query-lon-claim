@@ -91,30 +91,28 @@ export const getMethodName = (methodId: Bytes): string => {
   return MethodName.unknown
 }
 
-// export const toTuple = (calldata: TypedArray<number>): Bytes => {
-//   // Prepend a "tuple" prefix (function params are arrays, not tuples)
-//   // Refer: https://ethereum.stackexchange.com/questions/114582/the-graph-nodes-cant-decode-abi-encoded-data-containing-arrays
-//   const tuplePrefix = ByteArray.fromHexString(
-//     "0x0000000000000000000000000000000000000000000000000000000000000020"
-//   )
+export const toTuple = (calldata: Uint8Array): Bytes => {
+  // Prepend a "tuple" prefix (function params are arrays, not tuples)
+  // Refer: https://ethereum.stackexchange.com/questions/114582/the-graph-nodes-cant-decode-abi-encoded-data-containing-arrays
+  const tuplePrefix = ByteArray.fromHexString(
+    "0x0000000000000000000000000000000000000000000000000000000000000020"
+  )
 
-//   const calldataAsTuple = new Uint8Array(tuplePrefix.length + calldata.length)
+  const calldataAsTuple = new Uint8Array(tuplePrefix.length + calldata.length)
 
-//   // Concat prefix & original calldata
-//   calldataAsTuple.set(tuplePrefix, 0)
-//   calldataAsTuple.set(calldata, tuplePrefix.length)
+  // Concat prefix & original calldata
+  calldataAsTuple.set(tuplePrefix, 0)
+  calldataAsTuple.set(calldata, tuplePrefix.length)
 
-//   return Bytes.fromUint8Array(calldataAsTuple)
-// }
+  return Bytes.fromUint8Array(calldataAsTuple)
+}
 
 export function handleClaimed(event: ClaimedEvent): void {
   const id = getEventId(event)
   //   const id = event.transaction.hash.concatI32(event.logIndex.toI32())
   const zero = BigInt.fromU32(0)
   const one = Bytes.fromI32(1)
-  const tuplePrefix = ByteArray.fromHexString(
-    "0x0000000000000000000000000000000000000000000000000000000000000020"
-  )
+  const oneBigInt = BigInt.fromI32(1)
 
   const blockNumber = event.block.number
   const timestamp = event.block.timestamp
@@ -123,59 +121,35 @@ export function handleClaimed(event: ClaimedEvent): void {
   const from = changetype<Bytes>(event.transaction.from)
   const methodId = Bytes.fromUint8Array(transactionInput.subarray(0, 4))
   const calldata = transactionInput.subarray(4)
+  const calldataAsTuple = toTuple(calldata)
 
   const recipient = changetype<Bytes>(event.params.recipient)
   const balance = event.params.balance
   const method = getMethod(methodId)
   const methodName = getMethodName(methodId)
 
-  // ----------
-  // Update ClaimedTotal entity
-  // ----------
+  // ----------------------------------
+  // --- Update ClaimedTotal entity ---
+  // ----------------------------------
 
   let claimedTotalEntity = ClaimedTotalEntity.load(one)
   // In the Subgraph handler, using === always returns false. Please use == for comparison.
   if (claimedTotalEntity == null) {
     claimedTotalEntity = new ClaimedTotalEntity(one)
-    claimedTotalEntity.total = zero
+    claimedTotalEntity.totalBalance = zero
+    claimedTotalEntity.totalClaimed = zero
   }
-  claimedTotalEntity.total = claimedTotalEntity.total.plus(balance)
+  claimedTotalEntity.totalBalance =
+    claimedTotalEntity.totalBalance.plus(balance)
+  claimedTotalEntity.totalClaimed =
+    claimedTotalEntity.totalClaimed.plus(oneBigInt)
+
   // Save the entity to the store
   claimedTotalEntity.save()
 
-  // ----------
-  // Update ClaimedTotalByFrom entity
-  // ----------
-
-  let claimedTotalByFromEntity = ClaimedTotalByFromEntity.load(from)
-  if (claimedTotalByFromEntity == null) {
-    claimedTotalByFromEntity = new ClaimedTotalByFromEntity(from)
-    claimedTotalByFromEntity.from = from
-    claimedTotalByFromEntity.total = zero
-  }
-  claimedTotalByFromEntity.total = claimedTotalByFromEntity.total.plus(balance)
-  // Save the entity to the store
-  claimedTotalByFromEntity.save()
-
-  // ----------
-  // Update claimedTotalByRecipient entity
-  // ----------
-
-  let claimedTotalByRecipientEntity =
-    ClaimedTotalByRecipientEntity.load(recipient)
-  if (claimedTotalByRecipientEntity == null) {
-    claimedTotalByRecipientEntity = new ClaimedTotalByRecipientEntity(recipient)
-    claimedTotalByRecipientEntity.recipient = recipient
-    claimedTotalByRecipientEntity.total = zero
-  }
-  claimedTotalByRecipientEntity.total =
-    claimedTotalByRecipientEntity.total.plus(balance)
-  // Save the entity to the store
-  claimedTotalByRecipientEntity.save()
-
-  // ----------
-  // Create Claimed entity
-  // ----------
+  // -----------------------------
+  // --- Create Claimed entity ---
+  // -----------------------------
 
   const claimedEntity = new ClaimedEntity(id)
   claimedEntity.from = from
@@ -186,16 +160,14 @@ export function handleClaimed(event: ClaimedEvent): void {
   claimedEntity.transactionHash = transactionHash
   claimedEntity.transactionMethodId = methodId
   claimedEntity.transactionMethodName = methodName
-
-  // Prepend a "tuple" prefix (function params are arrays, not tuples)
-  // Refer: https://ethereum.stackexchange.com/questions/114582/the-graph-nodes-cant-decode-abi-encoded-data-containing-arrays
-  const calldataAsTuple = new Uint8Array(tuplePrefix.length + calldata.length)
-  calldataAsTuple.set(tuplePrefix, 0)
-  calldataAsTuple.set(calldata, tuplePrefix.length)
-  const calldataAsTupleByte = Bytes.fromUint8Array(calldataAsTuple)
+  claimedEntity.periods = []
+  claimedEntity.balances = []
 
   const periods: Array<BigInt | null> = []
   const balances: Array<BigInt> = []
+  // Because the AssemblyScript compiler struggles with null values, two non-null arrays have been added to store known methodId values.
+  const nonNullPeriods: Array<BigInt> = []
+  const nonNullBalances: Array<BigInt> = []
 
   // Currently, the switch conditions (case values) are implicitly converted to u32, i.e. switching over strings or similar is not yet supported.
   // Refer: https://www.assemblyscript.org/examples/snippets.html#switch-case
@@ -203,19 +175,21 @@ export function handleClaimed(event: ClaimedEvent): void {
     case Method.claimPeriod: {
       const decode = ethereum.decode(
         "(address,uint256,uint256,bytes32[])",
-        calldataAsTupleByte
+        calldataAsTuple
       )
       if (decode) {
         const claimPeriod = decode.toTuple()
         periods.push(claimPeriod[1].toBigInt())
         balances.push(claimPeriod[2].toBigInt())
+        nonNullPeriods.push(claimPeriod[1].toBigInt())
+        nonNullBalances.push(claimPeriod[2].toBigInt())
       }
       break
     }
     case Method.claimPeriods: {
       const decode = ethereum.decode(
         "(address,(uint256,uint256,bytes32[])[])",
-        calldataAsTupleByte
+        calldataAsTuple
       )
       if (decode) {
         const claimPeriods = decode.toTuple()
@@ -223,6 +197,8 @@ export function handleClaimed(event: ClaimedEvent): void {
         for (let i = 0; i < claims.length; i++) {
           periods.push(claims[i][0].toBigInt())
           balances.push(claims[i][1].toBigInt())
+          nonNullPeriods.push(claims[i][0].toBigInt())
+          nonNullBalances.push(claims[i][1].toBigInt())
         }
       }
       break
@@ -241,14 +217,58 @@ export function handleClaimed(event: ClaimedEvent): void {
     }
   }
   const periodsLength = periods.length
-  claimedEntity.periodsLength = periodsLength
+
+  claimedEntity.periodsLength = BigInt.fromI32(periodsLength)
+  claimedEntity.periods = nonNullPeriods
+  claimedEntity.balances = nonNullBalances
 
   // Save the entity to the store
   claimedEntity.save()
 
-  // ----------
-  // Create ClaimedByPeriod entity
-  // ----------
+  // ----------------------------------------
+  // --- Update ClaimedTotalByFrom entity ---
+  // ----------------------------------------
+
+  let claimedTotalByFromEntity = ClaimedTotalByFromEntity.load(from)
+  if (claimedTotalByFromEntity == null) {
+    claimedTotalByFromEntity = new ClaimedTotalByFromEntity(from)
+    claimedTotalByFromEntity.from = from
+    claimedTotalByFromEntity.totalPeriod = zero
+    claimedTotalByFromEntity.totalBalance = zero
+  }
+  claimedTotalByFromEntity.totalBalance =
+    claimedTotalByFromEntity.totalBalance.plus(balance)
+  claimedTotalByFromEntity.totalPeriod =
+    claimedTotalByFromEntity.totalPeriod.plus(BigInt.fromI32(periodsLength))
+
+  // Save the entity to the store
+  claimedTotalByFromEntity.save()
+
+  // ---------------------------------------------
+  // --- Update claimedTotalByRecipient entity ---
+  // ---------------------------------------------
+
+  let claimedTotalByRecipientEntity =
+    ClaimedTotalByRecipientEntity.load(recipient)
+  if (claimedTotalByRecipientEntity == null) {
+    claimedTotalByRecipientEntity = new ClaimedTotalByRecipientEntity(recipient)
+    claimedTotalByRecipientEntity.recipient = recipient
+    claimedTotalByRecipientEntity.totalPeriod = zero
+    claimedTotalByRecipientEntity.totalBalance = zero
+  }
+  claimedTotalByRecipientEntity.totalBalance =
+    claimedTotalByRecipientEntity.totalBalance.plus(balance)
+  claimedTotalByRecipientEntity.totalPeriod =
+    claimedTotalByRecipientEntity.totalPeriod.plus(
+      BigInt.fromI32(periodsLength)
+    )
+
+  // Save the entity to the store
+  claimedTotalByRecipientEntity.save()
+
+  // -------------------------------------
+  // --- Create ClaimedByPeriod entity ---
+  // -------------------------------------
 
   for (let i: i32 = 0; i < periodsLength; i++) {
     const idWithIndex = concatIndex(id, i)
@@ -267,119 +287,28 @@ export function handleClaimed(event: ClaimedEvent): void {
     // Save the entity to the store
     claimedByPeriodEntity.save()
 
-    log.info("[test] period: {}, balance: {}", [
-      periods[i] ? periods[i]!.toString() : "null",
-      balances[i].toString()
-    ])
+    // log.debug("[debug] period: {}, balance: {}", [
+    //   periods[i] ? periods[i]!.toString() : "null",
+    //   balances[i].toString()
+    // ])
   }
 
-  //   log.info("[log] id: {}", [id.toHexString()])
-
-  //   log.info(
-  //     "[log] transactionHash: {}, methodId: {}, methodName: {}, from: {}, recipient: {}, balance: {}, periodsLength: {}, transactionInput: {}",
-  //     [
-  //       transactionHash.toHexString(),
-  //       methodId.toHexString(),
-  //       methodName,
-  //       from.toHexString(),
-  //       recipient.toHexString(),
-  //       balance.toString(),
-  //       periodsLength.toString(),
-  //       transactionInput.toHexString()
-  //     ]
-  //   )
-
-  // TODO: decode calldata
-  // Refer: https://thegraph.com/docs/en/developing/graph-ts/api/#encodingdecoding-abi
-  // Refer: https://github.com/graphprotocol/graph-node/blob/6a7806cc465949ebb9e5b8269eeb763857797efc/tests/integration-tests/host-exports/src/mapping.ts#L72
-
-  // Refer: https://etherscan.io/tx/0x126017fe53cb762222313c4fe92de096544ed325d32b472f9c302cd992e628f2
-  //   const claimPeriod_0x126017fe = Bytes.fromHexString(
-  //     "..."
-  //   )
-  //   const claimPeriod_input = claimPeriod_0x126017fe.subarray(4)
-
-  // Refer: The Graph nodes can't decode ABI encoded data containing arrays
-  // https://ethereum.stackexchange.com/questions/114582/the-graph-nodes-cant-decode-abi-encoded-data-containing-arrays
-
-  // prepend a "tuple" prefix (function params are arrays, not tuples)
-
-  //   const functionInputAsTuple = new Uint8Array(
-  //     tuplePrefix.length + claimPeriod_input.length
-  //   )
-
-  // concat prefix & original input
-  //   functionInputAsTuple.set(tuplePrefix, 0)
-  //   functionInputAsTuple.set(claimPeriod_input, tuplePrefix.length)
-
-  //   const tupleInputBytes = Bytes.fromUint8Array(functionInputAsTuple)
-
-  //   log.info("test01", [])
-  //   const claimPeriod_input_decode = ethereum.decode(
-  //     "(address,uint256,uint256,bytes32[])",
-  //     tupleInputBytes
-  //   )!
-  //   const claimPeriod_input_decode = ethereum.decode(
-  //     "(address,(uint256,uint256,bytes32[])[])",
-  //     tupleInputBytes
-  //   )!
-
-  //   log.info("test02", [])
-  //   const claimPeriod_input_tuple = claimPeriod_input_decode.toTuple()
-
-  //   log.info("test03", [])
-  //   const recipientAddress = claimPeriod_input_tuple[0]
-  //   const tupleArray1 = claimPeriod_input_tuple[1]
-
-  //   log.info("claimPeriod: recipient: {}", [
-  //     recipientAddress.toAddress().toHexString()
-  //   ])
-
-  //   log.info("test04", [])
-  //   const test0 = tupleArray1.toTupleArray<ethereum.Tuple>()
-
-  //   log.info("test05", [])
-  //   const test1 = test0[1][0].toBigInt().toString()
-
-  //   const claims = claimPeriod_input_tuple[1]
-
-  //   log.info("test06", [])
-  //   log.info("test1: {}", [test1])
-
-  //   log.info("test07", [])
-  //   log.info("test2: {}", [test0.length.toString()])
-
-  //   const test0 = claims.toArray()
-  //   const test1 = test0[0].toTupleArray()
-  //   const test2 = test1.toBigInt().toString()
-  //   const period0 = claims[0].toBigInt().toString()
-
-  //   log.info("test07", [])
-  //   log.info("claimPeriod: claims: {}", [claims])
-
-  //   log.info("test08", [])
-
-  //   log.info("test03", [])
-  //   const proof = claimPeriod_input_tuple[3].toBytesArray()
-
-  //   log.info("test04", [])
-  //   log.info("claimPeriod: recipient: {}, period: {}, balance: {}", [
-  //     claimPeriod_input_tuple[0].toAddress().toHexString(),
-  //     claimPeriod_input_tuple[1].toBigInt().toString(),
-  //     claimPeriod_input_tuple[2].toBigInt().toString()
-  //   ])
-
-  //   log.info("test05", [])
-  //   log.info("claimPeriod: proof: {}, {}, {}, ...", [
-  //     proof[0].toHexString(),
-  //     proof[1].toHexString(),
-  //     proof[2].toHexString()
-  //   ])
-
-  //   log.info("test06", [])
-  //   log.info("claimPeriod: end of proof: {}", [
-  //     proof[proof.length - 1].toHexString()
-  //   ])
+  log.debug(
+    "[debug] transactionHash: {}, blockNumber: {}, blockTimestamp: {}, methodId: {}, methodName: {}, from: {}, recipient: {}, balance: {}, periodsLength: {}, periods: [{}], balances: [{}]",
+    [
+      transactionHash.toHexString(),
+      blockNumber.toString(),
+      timestamp.toString(),
+      methodId.toHexString(),
+      methodName,
+      from.toHexString(),
+      recipient.toHexString(),
+      balance.toString(),
+      periodsLength.toString(),
+      periods.toString(),
+      balances.toString()
+    ]
+  )
 }
 
 export function handleOwnerChanged(event: OwnerChangedEvent): void {
