@@ -145,11 +145,9 @@ export function handleClaimed(event: ClaimedEvent): void {
   claimedEntity.periods = []
   claimedEntity.balancePerPeriod = []
 
-  const periods: Array<BigInt | null> = []
+  // As the AssemblyScript compiler struggles with null values in arrays, non-null arrays are employed here, with BigInt.fromU64(u64.MAX_VALUE) serving to signify the absence of a period.
+  const periods: Array<BigInt> = [] // Array<BigInt | null> = []
   const balances: Array<BigInt> = []
-  // Because the AssemblyScript compiler struggles with null values, two non-null arrays have been added to store known methodId values.
-  const nonNullPeriods: Array<BigInt> = []
-  const nonNullBalances: Array<BigInt> = []
 
   // Currently, the switch conditions (case values) are implicitly converted to u32, i.e. switching over strings or similar is not yet supported.
   // Refer: https://www.assemblyscript.org/examples/snippets.html#switch-case
@@ -163,8 +161,6 @@ export function handleClaimed(event: ClaimedEvent): void {
         const claimPeriod = decode.toTuple()
         periods.push(claimPeriod[1].toBigInt())
         balances.push(claimPeriod[2].toBigInt())
-        nonNullPeriods.push(claimPeriod[1].toBigInt())
-        nonNullBalances.push(claimPeriod[2].toBigInt())
       }
       break
     }
@@ -179,36 +175,30 @@ export function handleClaimed(event: ClaimedEvent): void {
         for (let i = 0; i < claims.length; i++) {
           periods.push(claims[i][0].toBigInt())
           balances.push(claims[i][1].toBigInt())
-          nonNullPeriods.push(claims[i][0].toBigInt())
-          nonNullBalances.push(claims[i][1].toBigInt())
         }
       }
       break
     }
     case Method.execute: {
       claimedEntity.transactionMethodName = MethodName.execute
-      periods.push(null)
-      balances.push(balance)
       // Employing u64.MAX_VALUE as the unknown period value.
-      nonNullPeriods.push(BigInt.fromU64(u64.MAX_VALUE))
-      nonNullBalances.push(balance)
+      periods.push(BigInt.fromU64(u64.MAX_VALUE))
+      balances.push(balance)
       break
     }
     default: {
       claimedEntity.transactionMethodName = MethodName.unknown
-      periods.push(null)
-      balances.push(balance)
       // Employing u64.MAX_VALUE as the unknown period value.
-      nonNullPeriods.push(BigInt.fromU64(u64.MAX_VALUE))
-      nonNullBalances.push(balance)
+      periods.push(BigInt.fromU64(u64.MAX_VALUE))
+      balances.push(balance)
       break
     }
   }
   const periodsLength = periods.length
 
   claimedEntity.periodsLength = BigInt.fromI32(periodsLength)
-  claimedEntity.periods = nonNullPeriods
-  claimedEntity.balancePerPeriod = nonNullBalances
+  claimedEntity.periods = periods
+  claimedEntity.balancePerPeriod = balances
 
   // Save the entity to the store
   claimedEntity.save()

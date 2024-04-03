@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts"
 import {
   afterAll,
   assert,
@@ -8,19 +8,8 @@ import {
   describe,
   test
 } from "matchstick-as/assembly/index"
-import { Claimed as ClaimedEvent } from "../generated/MerkleRedeem/MerkleRedeem"
-import {
-  Claimed,
-  Claimed as ClaimedEntity,
-  ClaimedPerPeriod as ClaimedPerPeriodEntity,
-  TotalClaimedPerFrom as ClaimedTotalByFromEntity,
-  TotalClaimedPerRecipient as ClaimedTotalByRecipientEntity,
-  TotalClaimed as ClaimedTotalEntity,
-  OwnerChanged as OwnerChangedEntity,
-  OwnerNominated as OwnerNominatedEntity
-} from "../generated/schema"
 import { concatIndex, getEventId, handleClaimed } from "../src/merkle-redeem"
-import { createClaimedEvent, CustomEvents } from "./merkle-redeem-utils"
+import { CustomEvents } from "./merkle-redeem-utils"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/developer/matchstick/#tests-structure-0-5-0
@@ -61,238 +50,135 @@ describe("Describe entity assertions", () => {
   // For more test scenarios, see:
   // https://thegraph.com/docs/en/developer/matchstick/#write-a-unit-test
 
+  // ---------------------------
+  // --- Test Claimed entity ---
+  // ---------------------------
+
   test(
-    "ClaimPeriod() method occurs",
+    "Test Claimed entity data on claimPeriod() transaction",
     () => {
+      // Simulate claimPeriod() transaction
       const newClaimPeriodEvent = CustomEvents.createClaimPeriodEvent()
       handleClaimed(newClaimPeriodEvent)
 
-      const balance = "570759569000000000000"
-      const balanceBigInt = BigInt.fromString(balance)
-      const period = BigInt.fromI32(0)
-
+      // Configure claimPeriod() transaction parameters
       const id = getEventId(newClaimPeriodEvent)
       const idString = id.toHexString()
-      const from = Address.fromString(
+      const recipient = Address.fromHexString(
         "0x90e5e30d3A891693d6822e06b52562Dd4dBacC83"
-      )
-        .toHexString()
-        .toLowerCase()
-      const recipient = Address.fromString(
-        "0x90e5e30d3A891693d6822e06b52562Dd4dBacC83"
-      )
-        .toHexString()
-        .toLowerCase()
+      ).toHexString()
+      const balance = BigInt.fromString("570759569000000000000")
+      const period = BigInt.fromString("0")
+      const balancePerPeriod = [balance]
+      const periods = [period]
+      const periodsLength = 1 // In claimPeriod() transactions, always 1 period is fixed
 
-      // Entity counter checks
+      // Validate entity count
       assert.entityCount("Claimed", 1)
-      assert.entityCount("ClaimedPerPeriod", 1)
-      assert.entityCount("TotalClaimed", 1)
-      assert.entityCount("TotalClaimedPerRecipient", 1)
-      assert.entityCount("TotalClaimedPerFrom", 1)
 
-      // The periods and the balances array checks
-      assert.fieldEquals(
-        "Claimed",
-        idString,
-        "balancePerPeriod",
-        arrayToString([balanceBigInt])
-      )
-      assert.fieldEquals(
-        "Claimed",
-        idString,
-        "periods",
-        arrayToString([period])
-      )
-
-      // The from checks
-      assert.fieldEquals("Claimed", idString, "from", from)
-      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
-
-      // The recipient checks
+      // Validate recipient
       assert.fieldEquals("Claimed", idString, "recipient", recipient)
-      assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient, // The recipient as this entity id
-        "recipient",
-        recipient
-      )
 
-      // Entity fields checks
-      assert.fieldEquals("TotalClaimed", one, "totalBalance", balance)
-      assert.fieldEquals("TotalClaimedPerFrom", from, "countPeriod", "1")
-      assert.fieldEquals("TotalClaimedPerFrom", from, "totalBalance", balance)
-      assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient,
-        "countPeriod",
-        "1"
-      )
-      assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient,
-        "totalBalance",
-        balance
-      )
+      // Validate balance
+      assert.fieldEquals("Claimed", idString, "balance", balance.toString())
 
-      // The from checks
-      assert.fieldEquals(
-        "ClaimedPerPeriod",
-        concatIndex(id, 0).toHexString(),
-        "from",
-        from
-      )
-      // The recipient checks
-      assert.fieldEquals(
-        "ClaimedPerPeriod",
-        concatIndex(id, 0).toHexString(),
-        "recipient",
-        recipient
-      )
-      // The period checks
-      assert.fieldEquals(
-        "ClaimedPerPeriod",
-        concatIndex(id, 0).toHexString(),
-        "period",
-        period.toString()
-      )
-      // The period checks
-      assert.fieldEquals(
-        "ClaimedPerPeriod",
-        concatIndex(id, 0).toHexString(),
-        "balance",
-        balance
-      )
-    },
-    false // Expected success
-  )
-
-  test(
-    "ClaimPeriods() method occurs with single periods",
-    () => {
-      const newClaimPeriodsSingleEvent =
-        CustomEvents.createClaimPeriodsSingleEvent()
-      handleClaimed(newClaimPeriodsSingleEvent)
-
-      const balance = "20000000000000000000"
-      const balanceBigInt = BigInt.fromString(balance)
-      const balancePerPeriod: Array<BigInt> = [balance].map<BigInt>((str) =>
-        BigInt.fromString(str)
-      )
-      const periods: Array<BigInt> = [0].map<BigInt>((num) =>
-        BigInt.fromI32(num)
-      )
-      const periodsLength = periods.length
-
-      const id = getEventId(newClaimPeriodsSingleEvent)
-      const idString = id.toHexString()
-      const from = Address.fromString(
-        "0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"
-      )
-        .toHexString()
-        .toLowerCase()
-      const recipient = Address.fromString(
-        "0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"
-      )
-        .toHexString()
-        .toLowerCase()
-
-      // Entity counter checks
-      assert.entityCount("Claimed", 1)
-      assert.entityCount("ClaimedPerPeriod", periodsLength)
-      assert.entityCount("TotalClaimed", 1)
-      assert.entityCount("TotalClaimedPerRecipient", 1)
-      assert.entityCount("TotalClaimedPerFrom", 1)
-
-      // The periods and the balances array checks
+      // Validate balancePerPeriod
       assert.fieldEquals(
         "Claimed",
         idString,
         "balancePerPeriod",
         arrayToString(balancePerPeriod)
       )
+
+      // Validate periods
       assert.fieldEquals("Claimed", idString, "periods", arrayToString(periods))
 
-      // The from checks
-      assert.fieldEquals("Claimed", idString, "from", from)
-      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
-
-      // The recipient checks
-      assert.fieldEquals("Claimed", idString, "recipient", recipient)
+      // Validate periodsLength
       assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient, // The recipient as this entity id
-        "recipient",
-        recipient
+        "Claimed",
+        idString,
+        "periodsLength",
+        periodsLength.toString()
       )
-
-      // Entity fields checks
-      assert.fieldEquals("TotalClaimed", one, "totalBalance", balance)
-      assert.fieldEquals("TotalClaimedPerFrom", from, "countPeriod", "1")
-      assert.fieldEquals("TotalClaimedPerFrom", from, "totalBalance", balance)
-      assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient,
-        "countPeriod",
-        "1"
-      )
-      assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient,
-        "totalBalance",
-        balance
-      )
-
-      // Entity ClaimedByPeriod check
-      let totalTest = BigInt.fromI32(0)
-      for (let i: i32 = 0; i < periodsLength; i++) {
-        const claimedPerPeriodEntity = ClaimedPerPeriodEntity.load(
-          concatIndex(id, i)
-        )
-        // Plus the balances per period
-        if (claimedPerPeriodEntity) {
-          totalTest = totalTest.plus(claimedPerPeriodEntity.balance)
-        }
-
-        // The from checks
-        assert.fieldEquals(
-          "ClaimedPerPeriod",
-          concatIndex(id, i).toHexString(),
-          "from",
-          from
-        )
-        // The recipient checks
-        assert.fieldEquals(
-          "ClaimedPerPeriod",
-          concatIndex(id, i).toHexString(),
-          "recipient",
-          recipient
-        )
-        // The period checks
-        assert.fieldEquals(
-          "ClaimedPerPeriod",
-          concatIndex(id, i).toHexString(),
-          "period",
-          periods[i].toString()
-        )
-      }
-
-      // Check the total balance
-      assert.bigIntEquals(totalTest, balanceBigInt)
     },
     false // Expected success
   )
 
   test(
-    "ClaimPeriods() method occurs with multiple periods",
+    "Test Claimed entity data on claimPeriods() (single period)",
     () => {
+      // Simulate claimPeriods() (single period) transaction
+      const newClaimPeriodsSingleEvent =
+        CustomEvents.createClaimPeriodsSingleEvent()
+      handleClaimed(newClaimPeriodsSingleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const id = getEventId(newClaimPeriodsSingleEvent)
+      const idString = id.toHexString()
+      const recipient = Address.fromHexString(
+        "0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"
+      ).toHexString()
+      const balancePerPeriod = ["20000000000000000000"].map<BigInt>((str) =>
+        BigInt.fromString(str)
+      )
+      const periods = ["0"].map<BigInt>((str) => BigInt.fromString(str))
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("Claimed", 1)
+
+      // Validate recipient
+      assert.fieldEquals("Claimed", idString, "recipient", recipient)
+
+      // Validate balance
+      assert.fieldEquals(
+        "Claimed",
+        idString,
+        "balance",
+        totalBalance.toString()
+      )
+
+      // Validate balancePerPeriod
+      assert.fieldEquals(
+        "Claimed",
+        idString,
+        "balancePerPeriod",
+        arrayToString(balancePerPeriod)
+      )
+
+      // Validate periods
+      assert.fieldEquals("Claimed", idString, "periods", arrayToString(periods))
+
+      // Validate periodsLength
+      assert.fieldEquals(
+        "Claimed",
+        idString,
+        "periodsLength",
+        periodsLength.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test Claimed entity data on claimPeriods() (multiple periods)",
+    () => {
+      // Simulate claimPeriods() (multiple periods) transaction
       const newClaimPeriodsMultipleEvent =
         CustomEvents.createClaimPeriodsMultipleEvent()
       handleClaimed(newClaimPeriodsMultipleEvent)
 
-      const balance = "564572885000000000000"
-      const balanceBigInt = BigInt.fromString(balance)
-      const balancePerPeriod: Array<BigInt> = [
+      // Configure claimPeriod() transaction parameters
+      const id = getEventId(newClaimPeriodsMultipleEvent)
+      const idString = id.toHexString()
+      const recipient = Address.fromHexString(
+        "0x2250dd2642F60730f5FDBfdd978626E61EBe864e"
+      ).toHexString()
+      const balancePerPeriod = [
         "130630468000000000000",
         "2316868000000000000",
         "2247909000000000000",
@@ -306,101 +192,156 @@ describe("Describe entity assertions", () => {
         "60676810000000000000",
         "55178538000000000000"
       ].map<BigInt>((str) => BigInt.fromString(str))
-      const periods: Array<BigInt> = [
-        25, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13
-      ].map<BigInt>((num) => BigInt.fromI32(num))
+      const periods = [
+        "25",
+        "23",
+        "22",
+        "21",
+        "20",
+        "19",
+        "18",
+        "17",
+        "16",
+        "15",
+        "14",
+        "13"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
       const periodsLength = periods.length
 
-      const id = getEventId(newClaimPeriodsMultipleEvent)
-      const idString = id.toHexString()
-      const from = Address.fromString(
-        "0x2250dd2642F60730f5FDBfdd978626E61EBe864e"
-      )
-        .toHexString()
-        .toLowerCase()
-      const recipient = Address.fromString(
-        "0x2250dd2642F60730f5FDBfdd978626E61EBe864e"
-      )
-        .toHexString()
-        .toLowerCase()
-
-      // Entity counter checks
+      // Validate entity count
       assert.entityCount("Claimed", 1)
-      assert.entityCount("ClaimedPerPeriod", periodsLength)
-      assert.entityCount("TotalClaimed", 1)
-      assert.entityCount("TotalClaimedPerRecipient", 1)
-      assert.entityCount("TotalClaimedPerFrom", 1)
 
-      // The periods and the balances array checks
+      // Validate recipient
+      assert.fieldEquals("Claimed", idString, "recipient", recipient)
+
+      // Validate balance
+      assert.fieldEquals(
+        "Claimed",
+        idString,
+        "balance",
+        totalBalance.toString()
+      )
+
+      // Validate balancePerPeriod
       assert.fieldEquals(
         "Claimed",
         idString,
         "balancePerPeriod",
         arrayToString(balancePerPeriod)
       )
+
+      // Validate periods
       assert.fieldEquals("Claimed", idString, "periods", arrayToString(periods))
 
-      // The from checks
-      assert.fieldEquals("Claimed", idString, "from", from)
-      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
+      // Validate periodsLength
+      assert.fieldEquals(
+        "Claimed",
+        idString,
+        "periodsLength",
+        periodsLength.toString()
+      )
+    },
+    false // Expected success
+  )
 
-      // The recipient checks
+  test(
+    "Test Claimed entity data on execute() and other transactions",
+    () => {
+      // Simulate execute() transaction
+      const newExecuteEvent = CustomEvents.createExecuteEvent()
+      handleClaimed(newExecuteEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const id = getEventId(newExecuteEvent)
+      const idString = id.toHexString()
+      const recipient = Address.fromHexString(
+        "0x3021B1A8bB7d73d0afaA3537040EfAb630dB2958"
+      ).toHexString()
+      const balance = BigInt.fromString("1000000000000000000000")
+      const balancePerPeriod = [balance]
+      // Employing u64.MAX_VALUE as the unknown period value
+      const periods = [u64.MAX_VALUE].map<BigInt>((num) => BigInt.fromU64(num))
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("Claimed", 1)
+
+      // Validate recipient
       assert.fieldEquals("Claimed", idString, "recipient", recipient)
+
+      // Validate balance
+      assert.fieldEquals("Claimed", idString, "balance", balance.toString())
+
+      // Validate balancePerPeriod
       assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient, // The recipient as this entity id
-        "recipient",
-        recipient
+        "Claimed",
+        idString,
+        "balancePerPeriod",
+        arrayToString(balancePerPeriod)
       )
 
-      // Entity fields checks
-      assert.fieldEquals("TotalClaimed", one, "totalBalance", balance)
-      assert.fieldEquals(
-        "TotalClaimedPerFrom",
-        from,
-        "countPeriod",
-        periodsLength.toString()
-      )
-      assert.fieldEquals("TotalClaimedPerFrom", from, "totalBalance", balance)
-      assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient,
-        "countPeriod",
-        periodsLength.toString()
-      )
-      assert.fieldEquals(
-        "TotalClaimedPerRecipient",
-        recipient,
-        "totalBalance",
-        balance
-      )
+      // Validate periods
+      assert.fieldEquals("Claimed", idString, "periods", arrayToString(periods))
 
-      // Entity ClaimedByPeriod check
-      let totalTest = BigInt.fromI32(0)
+      // Validate periodsLength
+      assert.fieldEquals(
+        "Claimed",
+        idString,
+        "periodsLength",
+        periodsLength.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  // ------------------------------------
+  // --- Test ClaimedPerPeriod entity ---
+  // ------------------------------------
+
+  test(
+    "Test ClaimedPerPeriod entity data on claimPeriod() transaction",
+    () => {
+      // Simulate claimPeriod() transaction
+      const newClaimPeriodEvent = CustomEvents.createClaimPeriodEvent()
+      handleClaimed(newClaimPeriodEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const id = getEventId(newClaimPeriodEvent)
+      const recipient = Address.fromHexString(
+        "0x90e5e30d3A891693d6822e06b52562Dd4dBacC83"
+      ).toHexString()
+      const balance = BigInt.fromString("570759569000000000000")
+      const period = BigInt.fromString("0")
+      const balancePerPeriod = [balance]
+      const periods = [period]
+      const periodsLength = 1 // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate entity count
+      assert.entityCount("ClaimedPerPeriod", periodsLength)
+
       for (let i: i32 = 0; i < periodsLength; i++) {
-        const claimedPerPeriodEntity = ClaimedPerPeriodEntity.load(
-          concatIndex(id, i)
-        )
-        // Plus the balances per period
-        if (claimedPerPeriodEntity) {
-          totalTest = totalTest.plus(claimedPerPeriodEntity.balance)
-        }
-
-        // The from checks
-        assert.fieldEquals(
-          "ClaimedPerPeriod",
-          concatIndex(id, i).toHexString(),
-          "from",
-          from
-        )
-        // The recipient checks
+        // Validate recipient
         assert.fieldEquals(
           "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "recipient",
           recipient
         )
-        // The period checks
+
+        // Validate balance
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "balance",
+          balancePerPeriod[i].toString()
+        )
+
+        // Validate period
         assert.fieldEquals(
           "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
@@ -408,63 +349,796 @@ describe("Describe entity assertions", () => {
           periods[i].toString()
         )
       }
-
-      // Check the total balance
-      assert.bigIntEquals(totalTest, balanceBigInt)
     },
     false // Expected success
   )
 
   test(
-    "execute() method occurs",
+    "Test ClaimedPerPeriod entity data on claimPeriods() (single period)",
     () => {
-      const newExecuteEvent = CustomEvents.createExecuteEvent()
-      handleClaimed(newExecuteEvent)
+      // Simulate claimPeriods() (single period) transaction
+      const newClaimPeriodsSingleEvent =
+        CustomEvents.createClaimPeriodsSingleEvent()
+      handleClaimed(newClaimPeriodsSingleEvent)
 
-      const balance = "1000000000000000000000"
-      const balanceBigInt = BigInt.fromString(balance)
-      const balancePerPeriod: Array<BigInt> = [balance].map<BigInt>((str) =>
+      // Configure claimPeriod() transaction parameters
+      const id = getEventId(newClaimPeriodsSingleEvent)
+      const recipient = Address.fromHexString(
+        "0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"
+      ).toHexString()
+      const balancePerPeriod = ["20000000000000000000"].map<BigInt>((str) =>
         BigInt.fromString(str)
       )
-      const periods = [null]
+      const periods = ["0"].map<BigInt>((str) => BigInt.fromString(str))
       const periodsLength = periods.length
 
-      const id = getEventId(newExecuteEvent)
-      const idString = id.toHexString()
-      const from = Address.fromString(
-        "0x4eD51224672aaD35d50F2ee49b0fdC9958618d38"
-      )
-        .toHexString()
-        .toLowerCase()
-      const recipient = Address.fromString(
-        "0x3021B1A8bB7d73d0afaA3537040EfAb630dB2958"
-      )
-        .toHexString()
-        .toLowerCase()
-
-      // The periods and the balances array checks
-      assert.fieldEquals(
-        "Claimed",
-        idString,
-        "balancePerPeriod",
-        arrayToString(balancePerPeriod)
-      )
-      assert.fieldEquals(
-        "Claimed",
-        idString,
-        "periods",
-        arrayToString([BigInt.fromU64(u64.MAX_VALUE)])
-      ) // Employing u64.MAX_VALUE as the unknown period value.
+      // Validate entity count
+      assert.entityCount("ClaimedPerPeriod", periodsLength)
 
       for (let i: i32 = 0; i < periodsLength; i++) {
-        // The period checks
+        // Validate recipient
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "recipient",
+          recipient
+        )
+
+        // Validate balance
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "balance",
+          balancePerPeriod[i].toString()
+        )
+
+        // Validate period
         assert.fieldEquals(
           "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "period",
-          "null" // unknown period
+          periods[i].toString()
         )
       }
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test ClaimedPerPeriod entity data on claimPeriods() (multiple periods)",
+    () => {
+      // Simulate claimPeriods() (multiple periods) transaction
+      const newClaimPeriodsMultipleEvent =
+        CustomEvents.createClaimPeriodsMultipleEvent()
+      handleClaimed(newClaimPeriodsMultipleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const id = getEventId(newClaimPeriodsMultipleEvent)
+      const recipient = Address.fromHexString(
+        "0x2250dd2642F60730f5FDBfdd978626E61EBe864e"
+      ).toHexString()
+      const balancePerPeriod = [
+        "130630468000000000000",
+        "2316868000000000000",
+        "2247909000000000000",
+        "1252679000000000000",
+        "1677993000000000000",
+        "4276680000000000000",
+        "70154602000000000000",
+        "9925028000000000000",
+        "139978163000000000000",
+        "86257147000000000000",
+        "60676810000000000000",
+        "55178538000000000000"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const periods = [
+        "25",
+        "23",
+        "22",
+        "21",
+        "20",
+        "19",
+        "18",
+        "17",
+        "16",
+        "15",
+        "14",
+        "13"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("ClaimedPerPeriod", periodsLength)
+
+      for (let i: i32 = 0; i < periodsLength; i++) {
+        // Validate recipient
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "recipient",
+          recipient
+        )
+
+        // Validate balance
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "balance",
+          balancePerPeriod[i].toString()
+        )
+
+        // Validate period
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "period",
+          periods[i].toString()
+        )
+      }
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test ClaimedPerPeriod entity data on execute() and other transactions",
+    () => {
+      // Simulate execute() transaction
+      const newExecuteEvent = CustomEvents.createExecuteEvent()
+      handleClaimed(newExecuteEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const id = getEventId(newExecuteEvent)
+      const recipient = Address.fromHexString(
+        "0x3021B1A8bB7d73d0afaA3537040EfAb630dB2958"
+      ).toHexString()
+      const balance = BigInt.fromString("1000000000000000000000")
+      const balancePerPeriod = [balance]
+      // Employing u64.MAX_VALUE as the unknown period value
+      const periods = [u64.MAX_VALUE].map<BigInt>((num) => BigInt.fromU64(num))
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("ClaimedPerPeriod", periodsLength)
+
+      for (let i: i32 = 0; i < periodsLength; i++) {
+        // Validate recipient
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "recipient",
+          recipient
+        )
+
+        // Validate balance
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "balance",
+          balancePerPeriod[i].toString()
+        )
+
+        // Validate period
+        assert.fieldEquals(
+          "ClaimedPerPeriod",
+          concatIndex(id, i).toHexString(),
+          "period",
+          periods[i].toString()
+        )
+      }
+    },
+    false // Expected success
+  )
+
+  // --------------------------------
+  // --- Test TotalClaimed entity ---
+  // --------------------------------
+
+  test(
+    "Test TotalClaimed entity data on claimPeriod() transaction",
+    () => {
+      // Simulate claimPeriod() transaction
+      const newClaimPeriodEvent = CustomEvents.createClaimPeriodEvent()
+      handleClaimed(newClaimPeriodEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const balance = BigInt.fromString("570759569000000000000")
+      const periodsLength = 1 // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate entity count
+      assert.entityCount("TotalClaimed", 1)
+
+      // Validate countClaimed
+      assert.fieldEquals("TotalClaimed", one, "countClaimed", "1")
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "countPeriod",
+        periodsLength.toString()
+      ) // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "totalBalance",
+        balance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimed entity data on claimPeriods() (single period)",
+    () => {
+      // Simulate claimPeriods() (single period) transaction
+      const newClaimPeriodsSingleEvent =
+        CustomEvents.createClaimPeriodsSingleEvent()
+      handleClaimed(newClaimPeriodsSingleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const balancePerPeriod = ["20000000000000000000"].map<BigInt>((str) =>
+        BigInt.fromString(str)
+      )
+      const periods = ["0"].map<BigInt>((str) => BigInt.fromString(str))
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimed", 1)
+
+      // Validate countClaimed
+      assert.fieldEquals("TotalClaimed", one, "countClaimed", "1")
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "countPeriod",
+        periodsLength.toString()
+      ) // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "totalBalance",
+        totalBalance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimed entity data on claimPeriods() (multiple periods)",
+    () => {
+      // Simulate claimPeriods() (multiple periods) transaction
+      const newClaimPeriodsMultipleEvent =
+        CustomEvents.createClaimPeriodsMultipleEvent()
+      handleClaimed(newClaimPeriodsMultipleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const balancePerPeriod = [
+        "130630468000000000000",
+        "2316868000000000000",
+        "2247909000000000000",
+        "1252679000000000000",
+        "1677993000000000000",
+        "4276680000000000000",
+        "70154602000000000000",
+        "9925028000000000000",
+        "139978163000000000000",
+        "86257147000000000000",
+        "60676810000000000000",
+        "55178538000000000000"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const periods = [
+        "25",
+        "23",
+        "22",
+        "21",
+        "20",
+        "19",
+        "18",
+        "17",
+        "16",
+        "15",
+        "14",
+        "13"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimed", 1)
+
+      // Validate countClaimed
+      assert.fieldEquals("TotalClaimed", one, "countClaimed", "1")
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "countPeriod",
+        periodsLength.toString()
+      ) // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "totalBalance",
+        totalBalance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimed entity data on execute() and other transactions",
+    () => {
+      // Simulate execute() transaction
+      const newExecuteEvent = CustomEvents.createExecuteEvent()
+      handleClaimed(newExecuteEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const balance = BigInt.fromString("1000000000000000000000")
+      // Employing u64.MAX_VALUE as the unknown period value
+      const periods = [u64.MAX_VALUE].map<BigInt>((num) => BigInt.fromU64(num))
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimed", 1)
+
+      // Validate countClaimed
+      assert.fieldEquals("TotalClaimed", one, "countClaimed", "1")
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "countPeriod",
+        periodsLength.toString()
+      ) // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimed",
+        one,
+        "totalBalance",
+        balance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  // ---------------------------------------
+  // --- Test TotalClaimedPerFrom entity ---
+  // ---------------------------------------
+
+  test(
+    "Test TotalClaimedPerFrom entity data on claimPeriod() transaction",
+    () => {
+      // Simulate claimPeriod() transaction
+      const newClaimPeriodEvent = CustomEvents.createClaimPeriodEvent()
+      handleClaimed(newClaimPeriodEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const from = Address.fromHexString(
+        "0x90e5e30d3A891693d6822e06b52562Dd4dBacC83"
+      ).toHexString()
+      const balance = BigInt.fromString("570759569000000000000")
+      const periodsLength = 1 // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerFrom", 1)
+
+      // Validate from
+      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "totalBalance",
+        balance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimedPerFrom entity data on claimPeriods() (single period)",
+    () => {
+      // Simulate claimPeriods() (single period) transaction
+      const newClaimPeriodsSingleEvent =
+        CustomEvents.createClaimPeriodsSingleEvent()
+      handleClaimed(newClaimPeriodsSingleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const from = Address.fromHexString(
+        "0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"
+      ).toHexString()
+      const balancePerPeriod = ["20000000000000000000"].map<BigInt>((str) =>
+        BigInt.fromString(str)
+      )
+      const periods = ["0"].map<BigInt>((str) => BigInt.fromString(str))
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerFrom", 1)
+
+      // Validate from
+      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "totalBalance",
+        totalBalance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimedPerFrom entity data on claimPeriods() (multiple periods)",
+    () => {
+      // Simulate claimPeriods() (multiple periods) transaction
+      const newClaimPeriodsMultipleEvent =
+        CustomEvents.createClaimPeriodsMultipleEvent()
+      handleClaimed(newClaimPeriodsMultipleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const from = Address.fromString(
+        "0x2250dd2642F60730f5FDBfdd978626E61EBe864e"
+      ).toHexString()
+      const balancePerPeriod = [
+        "130630468000000000000",
+        "2316868000000000000",
+        "2247909000000000000",
+        "1252679000000000000",
+        "1677993000000000000",
+        "4276680000000000000",
+        "70154602000000000000",
+        "9925028000000000000",
+        "139978163000000000000",
+        "86257147000000000000",
+        "60676810000000000000",
+        "55178538000000000000"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const periods = [
+        "25",
+        "23",
+        "22",
+        "21",
+        "20",
+        "19",
+        "18",
+        "17",
+        "16",
+        "15",
+        "14",
+        "13"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerFrom", 1)
+
+      // Validate from
+      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "totalBalance",
+        totalBalance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimedPerFrom entity data on execute() and other transactions",
+    () => {
+      // Simulate execute() transaction
+      const newExecuteEvent = CustomEvents.createExecuteEvent()
+      handleClaimed(newExecuteEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const from = Address.fromString(
+        "0x4eD51224672aaD35d50F2ee49b0fdC9958618d38"
+      ).toHexString()
+      const balance = BigInt.fromString("1000000000000000000000")
+      // Employing u64.MAX_VALUE as the unknown period value
+      const periods = [u64.MAX_VALUE].map<BigInt>((num) => BigInt.fromU64(num))
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerFrom", 1)
+
+      // Validate from
+      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerFrom",
+        from,
+        "totalBalance",
+        balance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  // --------------------------------------------
+  // --- Test TotalClaimedPerRecipient entity ---
+  // --------------------------------------------
+
+  test(
+    "Test TotalClaimedPerRecipient entity data on claimPeriod() transaction",
+    () => {
+      // Simulate claimPeriod() transaction
+      const newClaimPeriodEvent = CustomEvents.createClaimPeriodEvent()
+      handleClaimed(newClaimPeriodEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const recipient = Address.fromHexString(
+        "0x90e5e30d3A891693d6822e06b52562Dd4dBacC83"
+      ).toHexString()
+      const balance = BigInt.fromString("570759569000000000000")
+      const periodsLength = 1 // In claimPeriod() transactions, always 1 period is fixed
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerRecipient", 1)
+
+      // Validate recipient
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "recipient",
+        recipient
+      ) // The recipient as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "totalBalance",
+        balance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimedPerRecipient entity data on claimPeriods() (single period)",
+    () => {
+      // Simulate claimPeriods() (single period) transaction
+      const newClaimPeriodsSingleEvent =
+        CustomEvents.createClaimPeriodsSingleEvent()
+      handleClaimed(newClaimPeriodsSingleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const recipient = Address.fromHexString(
+        "0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"
+      ).toHexString()
+      const balancePerPeriod = ["20000000000000000000"].map<BigInt>((str) =>
+        BigInt.fromString(str)
+      )
+      const periods = ["0"].map<BigInt>((str) => BigInt.fromString(str))
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerRecipient", 1)
+
+      // Validate recipient
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "recipient",
+        recipient
+      ) // The recipient as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "totalBalance",
+        totalBalance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimedPerRecipient entity data on claimPeriods() (multiple periods)",
+    () => {
+      // Simulate claimPeriods() (multiple periods) transaction
+      const newClaimPeriodsMultipleEvent =
+        CustomEvents.createClaimPeriodsMultipleEvent()
+      handleClaimed(newClaimPeriodsMultipleEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const recipient = Address.fromHexString(
+        "0x2250dd2642F60730f5FDBfdd978626E61EBe864e"
+      ).toHexString()
+      const balancePerPeriod = [
+        "130630468000000000000",
+        "2316868000000000000",
+        "2247909000000000000",
+        "1252679000000000000",
+        "1677993000000000000",
+        "4276680000000000000",
+        "70154602000000000000",
+        "9925028000000000000",
+        "139978163000000000000",
+        "86257147000000000000",
+        "60676810000000000000",
+        "55178538000000000000"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const periods = [
+        "25",
+        "23",
+        "22",
+        "21",
+        "20",
+        "19",
+        "18",
+        "17",
+        "16",
+        "15",
+        "14",
+        "13"
+      ].map<BigInt>((str) => BigInt.fromString(str))
+      const totalBalance = balancePerPeriod.reduce<BigInt>(
+        (x, y) => x.plus(y),
+        BigInt.fromString("0")
+      )
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerRecipient", 1)
+
+      // Validate recipient
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "recipient",
+        recipient
+      ) // The recipient as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "totalBalance",
+        totalBalance.toString()
+      )
+    },
+    false // Expected success
+  )
+
+  test(
+    "Test TotalClaimedPerRecipient entity data on execute() and other transactions",
+    () => {
+      // Simulate execute() transaction
+      const newExecuteEvent = CustomEvents.createExecuteEvent()
+      handleClaimed(newExecuteEvent)
+
+      // Configure claimPeriod() transaction parameters
+      const recipient = Address.fromHexString(
+        "0x3021B1A8bB7d73d0afaA3537040EfAb630dB2958"
+      ).toHexString()
+      const balance = BigInt.fromString("1000000000000000000000")
+      // Employing u64.MAX_VALUE as the unknown period value
+      const periods = [u64.MAX_VALUE].map<BigInt>((num) => BigInt.fromU64(num))
+      const periodsLength = periods.length
+
+      // Validate entity count
+      assert.entityCount("TotalClaimedPerRecipient", 1)
+
+      // Validate recipient
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "recipient",
+        recipient
+      ) // The recipient as this entity id
+
+      // Validate countPeriod
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "countPeriod",
+        periodsLength.toString()
+      )
+
+      // Validate totalBalance
+      assert.fieldEquals(
+        "TotalClaimedPerRecipient",
+        recipient,
+        "totalBalance",
+        balance.toString()
+      )
     },
     false // Expected success
   )

@@ -5,7 +5,6 @@ enum MethodName {
   unknown
 }
 
-# balances > balancePerPeriod
 type Claimed @entity(immutable: true) {
   id: Bytes!
   from: Bytes! # address
@@ -25,7 +24,7 @@ type ClaimedPerPeriod @entity(immutable: true) {
   id: Bytes!
   from: Bytes! # address
   recipient: Bytes! # address
-  period: BigInt # could be null
+  period: BigInt! # using u64.MAX_VALUE as null
   balance: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -37,7 +36,7 @@ type ClaimedPerPeriod @entity(immutable: true) {
 type TotalClaimed @entity(immutable: false) {
   id: Bytes! # is always Bytes.fromI32(1)
   countClaimed: BigInt! # uint256
-  countPeriod: BigInt! # uint256 # 儲存所有 period 數量
+  countPeriod: BigInt! # uint256
   totalBalance: BigInt! # uint256
 }
 
