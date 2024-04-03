@@ -11,11 +11,11 @@ import {
 import { Claimed as ClaimedEvent } from "../generated/MerkleRedeem/MerkleRedeem"
 import {
   Claimed,
-  ClaimedByPeriod as ClaimedByPeriodEntity,
   Claimed as ClaimedEntity,
-  ClaimedTotalByFrom as ClaimedTotalByFromEntity,
-  ClaimedTotalByRecipient as ClaimedTotalByRecipientEntity,
-  ClaimedTotal as ClaimedTotalEntity,
+  ClaimedPerPeriod as ClaimedPerPeriodEntity,
+  TotalClaimedPerFrom as ClaimedTotalByFromEntity,
+  TotalClaimedPerRecipient as ClaimedTotalByRecipientEntity,
+  TotalClaimed as ClaimedTotalEntity,
   OwnerChanged as OwnerChangedEntity,
   OwnerNominated as OwnerNominatedEntity
 } from "../generated/schema"
@@ -86,16 +86,16 @@ describe("Describe entity assertions", () => {
 
       // Entity counter checks
       assert.entityCount("Claimed", 1)
-      assert.entityCount("ClaimedByPeriod", 1)
-      assert.entityCount("ClaimedTotal", 1)
-      assert.entityCount("ClaimedTotalByRecipient", 1)
-      assert.entityCount("ClaimedTotalByFrom", 1)
+      assert.entityCount("ClaimedPerPeriod", 1)
+      assert.entityCount("TotalClaimed", 1)
+      assert.entityCount("TotalClaimedPerRecipient", 1)
+      assert.entityCount("TotalClaimedPerFrom", 1)
 
       // The periods and the balances array checks
       assert.fieldEquals(
         "Claimed",
         idString,
-        "balances",
+        "balancePerPeriod",
         arrayToString([balanceBigInt])
       )
       assert.fieldEquals(
@@ -107,29 +107,29 @@ describe("Describe entity assertions", () => {
 
       // The from checks
       assert.fieldEquals("Claimed", idString, "from", from)
-      assert.fieldEquals("ClaimedTotalByFrom", from, "from", from) // The from as this entity id
+      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
 
       // The recipient checks
       assert.fieldEquals("Claimed", idString, "recipient", recipient)
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient, // The recipient as this entity id
         "recipient",
         recipient
       )
 
       // Entity fields checks
-      assert.fieldEquals("ClaimedTotal", one, "totalBalance", balance)
-      assert.fieldEquals("ClaimedTotalByFrom", from, "totalPeriod", "1")
-      assert.fieldEquals("ClaimedTotalByFrom", from, "totalBalance", balance)
+      assert.fieldEquals("TotalClaimed", one, "totalBalance", balance)
+      assert.fieldEquals("TotalClaimedPerFrom", from, "countPeriod", "1")
+      assert.fieldEquals("TotalClaimedPerFrom", from, "totalBalance", balance)
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient,
-        "totalPeriod",
+        "countPeriod",
         "1"
       )
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient,
         "totalBalance",
         balance
@@ -137,28 +137,28 @@ describe("Describe entity assertions", () => {
 
       // The from checks
       assert.fieldEquals(
-        "ClaimedByPeriod",
+        "ClaimedPerPeriod",
         concatIndex(id, 0).toHexString(),
         "from",
         from
       )
       // The recipient checks
       assert.fieldEquals(
-        "ClaimedByPeriod",
+        "ClaimedPerPeriod",
         concatIndex(id, 0).toHexString(),
         "recipient",
         recipient
       )
       // The period checks
       assert.fieldEquals(
-        "ClaimedByPeriod",
+        "ClaimedPerPeriod",
         concatIndex(id, 0).toHexString(),
         "period",
         period.toString()
       )
       // The period checks
       assert.fieldEquals(
-        "ClaimedByPeriod",
+        "ClaimedPerPeriod",
         concatIndex(id, 0).toHexString(),
         "balance",
         balance
@@ -176,7 +176,7 @@ describe("Describe entity assertions", () => {
 
       const balance = "20000000000000000000"
       const balanceBigInt = BigInt.fromString(balance)
-      const balances: Array<BigInt> = [balance].map<BigInt>((str) =>
+      const balancePerPeriod: Array<BigInt> = [balance].map<BigInt>((str) =>
         BigInt.fromString(str)
       )
       const periods: Array<BigInt> = [0].map<BigInt>((num) =>
@@ -199,45 +199,45 @@ describe("Describe entity assertions", () => {
 
       // Entity counter checks
       assert.entityCount("Claimed", 1)
-      assert.entityCount("ClaimedByPeriod", periodsLength)
-      assert.entityCount("ClaimedTotal", 1)
-      assert.entityCount("ClaimedTotalByRecipient", 1)
-      assert.entityCount("ClaimedTotalByFrom", 1)
+      assert.entityCount("ClaimedPerPeriod", periodsLength)
+      assert.entityCount("TotalClaimed", 1)
+      assert.entityCount("TotalClaimedPerRecipient", 1)
+      assert.entityCount("TotalClaimedPerFrom", 1)
 
       // The periods and the balances array checks
       assert.fieldEquals(
         "Claimed",
         idString,
-        "balances",
-        arrayToString(balances)
+        "balancePerPeriod",
+        arrayToString(balancePerPeriod)
       )
       assert.fieldEquals("Claimed", idString, "periods", arrayToString(periods))
 
       // The from checks
       assert.fieldEquals("Claimed", idString, "from", from)
-      assert.fieldEquals("ClaimedTotalByFrom", from, "from", from) // The from as this entity id
+      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
 
       // The recipient checks
       assert.fieldEquals("Claimed", idString, "recipient", recipient)
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient, // The recipient as this entity id
         "recipient",
         recipient
       )
 
       // Entity fields checks
-      assert.fieldEquals("ClaimedTotal", one, "totalBalance", balance)
-      assert.fieldEquals("ClaimedTotalByFrom", from, "totalPeriod", "1")
-      assert.fieldEquals("ClaimedTotalByFrom", from, "totalBalance", balance)
+      assert.fieldEquals("TotalClaimed", one, "totalBalance", balance)
+      assert.fieldEquals("TotalClaimedPerFrom", from, "countPeriod", "1")
+      assert.fieldEquals("TotalClaimedPerFrom", from, "totalBalance", balance)
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient,
-        "totalPeriod",
+        "countPeriod",
         "1"
       )
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient,
         "totalBalance",
         balance
@@ -246,31 +246,31 @@ describe("Describe entity assertions", () => {
       // Entity ClaimedByPeriod check
       let totalTest = BigInt.fromI32(0)
       for (let i: i32 = 0; i < periodsLength; i++) {
-        const claimedByPeriodEntity = ClaimedByPeriodEntity.load(
+        const claimedPerPeriodEntity = ClaimedPerPeriodEntity.load(
           concatIndex(id, i)
         )
         // Plus the balances per period
-        if (claimedByPeriodEntity) {
-          totalTest = totalTest.plus(claimedByPeriodEntity.balance)
+        if (claimedPerPeriodEntity) {
+          totalTest = totalTest.plus(claimedPerPeriodEntity.balance)
         }
 
         // The from checks
         assert.fieldEquals(
-          "ClaimedByPeriod",
+          "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "from",
           from
         )
         // The recipient checks
         assert.fieldEquals(
-          "ClaimedByPeriod",
+          "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "recipient",
           recipient
         )
         // The period checks
         assert.fieldEquals(
-          "ClaimedByPeriod",
+          "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "period",
           periods[i].toString()
@@ -292,7 +292,7 @@ describe("Describe entity assertions", () => {
 
       const balance = "564572885000000000000"
       const balanceBigInt = BigInt.fromString(balance)
-      const balances: Array<BigInt> = [
+      const balancePerPeriod: Array<BigInt> = [
         "130630468000000000000",
         "2316868000000000000",
         "2247909000000000000",
@@ -326,50 +326,50 @@ describe("Describe entity assertions", () => {
 
       // Entity counter checks
       assert.entityCount("Claimed", 1)
-      assert.entityCount("ClaimedByPeriod", periodsLength)
-      assert.entityCount("ClaimedTotal", 1)
-      assert.entityCount("ClaimedTotalByRecipient", 1)
-      assert.entityCount("ClaimedTotalByFrom", 1)
+      assert.entityCount("ClaimedPerPeriod", periodsLength)
+      assert.entityCount("TotalClaimed", 1)
+      assert.entityCount("TotalClaimedPerRecipient", 1)
+      assert.entityCount("TotalClaimedPerFrom", 1)
 
       // The periods and the balances array checks
       assert.fieldEquals(
         "Claimed",
         idString,
-        "balances",
-        arrayToString(balances)
+        "balancePerPeriod",
+        arrayToString(balancePerPeriod)
       )
       assert.fieldEquals("Claimed", idString, "periods", arrayToString(periods))
 
       // The from checks
       assert.fieldEquals("Claimed", idString, "from", from)
-      assert.fieldEquals("ClaimedTotalByFrom", from, "from", from) // The from as this entity id
+      assert.fieldEquals("TotalClaimedPerFrom", from, "from", from) // The from as this entity id
 
       // The recipient checks
       assert.fieldEquals("Claimed", idString, "recipient", recipient)
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient, // The recipient as this entity id
         "recipient",
         recipient
       )
 
       // Entity fields checks
-      assert.fieldEquals("ClaimedTotal", one, "totalBalance", balance)
+      assert.fieldEquals("TotalClaimed", one, "totalBalance", balance)
       assert.fieldEquals(
-        "ClaimedTotalByFrom",
+        "TotalClaimedPerFrom",
         from,
-        "totalPeriod",
+        "countPeriod",
         periodsLength.toString()
       )
-      assert.fieldEquals("ClaimedTotalByFrom", from, "totalBalance", balance)
+      assert.fieldEquals("TotalClaimedPerFrom", from, "totalBalance", balance)
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient,
-        "totalPeriod",
+        "countPeriod",
         periodsLength.toString()
       )
       assert.fieldEquals(
-        "ClaimedTotalByRecipient",
+        "TotalClaimedPerRecipient",
         recipient,
         "totalBalance",
         balance
@@ -378,31 +378,31 @@ describe("Describe entity assertions", () => {
       // Entity ClaimedByPeriod check
       let totalTest = BigInt.fromI32(0)
       for (let i: i32 = 0; i < periodsLength; i++) {
-        const claimedByPeriodEntity = ClaimedByPeriodEntity.load(
+        const claimedPerPeriodEntity = ClaimedPerPeriodEntity.load(
           concatIndex(id, i)
         )
         // Plus the balances per period
-        if (claimedByPeriodEntity) {
-          totalTest = totalTest.plus(claimedByPeriodEntity.balance)
+        if (claimedPerPeriodEntity) {
+          totalTest = totalTest.plus(claimedPerPeriodEntity.balance)
         }
 
         // The from checks
         assert.fieldEquals(
-          "ClaimedByPeriod",
+          "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "from",
           from
         )
         // The recipient checks
         assert.fieldEquals(
-          "ClaimedByPeriod",
+          "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "recipient",
           recipient
         )
         // The period checks
         assert.fieldEquals(
-          "ClaimedByPeriod",
+          "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "period",
           periods[i].toString()
@@ -423,7 +423,7 @@ describe("Describe entity assertions", () => {
 
       const balance = "1000000000000000000000"
       const balanceBigInt = BigInt.fromString(balance)
-      const balances: Array<BigInt> = [balance].map<BigInt>((str) =>
+      const balancePerPeriod: Array<BigInt> = [balance].map<BigInt>((str) =>
         BigInt.fromString(str)
       )
       const periods = [null]
@@ -446,20 +446,20 @@ describe("Describe entity assertions", () => {
       assert.fieldEquals(
         "Claimed",
         idString,
-        "balances",
-        arrayToString(balances)
+        "balancePerPeriod",
+        arrayToString(balancePerPeriod)
       )
       assert.fieldEquals(
         "Claimed",
         idString,
         "periods",
-        arrayToString([BigInt.fromI32(i32.MAX_VALUE)])
-      ) // Employing i32.MAX_VALUE as the unknown period value.
+        arrayToString([BigInt.fromU64(u64.MAX_VALUE)])
+      ) // Employing u64.MAX_VALUE as the unknown period value.
 
       for (let i: i32 = 0; i < periodsLength; i++) {
         // The period checks
         assert.fieldEquals(
-          "ClaimedByPeriod",
+          "ClaimedPerPeriod",
           concatIndex(id, i).toHexString(),
           "period",
           "null" // unknown period

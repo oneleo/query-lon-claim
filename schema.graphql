@@ -5,12 +5,13 @@ enum MethodName {
   unknown
 }
 
+# balances > balancePerPeriod
 type Claimed @entity(immutable: true) {
   id: Bytes!
   from: Bytes! # address
   recipient: Bytes! # address
   balance: BigInt! # uint256
-  balances: [BigInt!]! # uint256[]
+  balancePerPeriod: [BigInt!]! # uint256[]
   periods: [BigInt!]! # uint256[]
   periodsLength: BigInt! # uint256
   blockNumber: BigInt!
@@ -20,7 +21,7 @@ type Claimed @entity(immutable: true) {
   transactionMethodName: MethodName!
 }
 
-type ClaimedByPeriod @entity(immutable: true) {
+type ClaimedPerPeriod @entity(immutable: true) {
   id: Bytes!
   from: Bytes! # address
   recipient: Bytes! # address
@@ -33,23 +34,24 @@ type ClaimedByPeriod @entity(immutable: true) {
   transactionMethodName: MethodName!
 }
 
-type ClaimedTotal @entity(immutable: false) {
+type TotalClaimed @entity(immutable: false) {
   id: Bytes! # is always Bytes.fromI32(1)
+  countClaimed: BigInt! # uint256
+  countPeriod: BigInt! # uint256 # 儲存所有 period 數量
   totalBalance: BigInt! # uint256
-  totalClaimed: BigInt! # uint256
 }
 
-type ClaimedTotalByFrom @entity(immutable: false) {
+type TotalClaimedPerFrom @entity(immutable: false) {
   id: Bytes! # equals the from
   from: Bytes! # address
-  totalPeriod: BigInt! # uint256
+  countPeriod: BigInt! # uint256
   totalBalance: BigInt! # uint256
 }
 
-type ClaimedTotalByRecipient @entity(immutable: false) {
+type TotalClaimedPerRecipient @entity(immutable: false) {
   id: Bytes! # equals the recipient
   recipient: Bytes! # address
-  totalPeriod: BigInt! # uint256
+  countPeriod: BigInt! # uint256
   totalBalance: BigInt! # uint256
 }
 

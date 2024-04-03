@@ -14,13 +14,13 @@ import {
   OwnerNominated as OwnerNominatedEvent
 } from "../generated/MerkleRedeem/MerkleRedeem"
 import {
-  ClaimedByPeriod as ClaimedByPeriodEntity,
   Claimed as ClaimedEntity,
-  ClaimedTotalByFrom as ClaimedTotalByFromEntity,
-  ClaimedTotalByRecipient as ClaimedTotalByRecipientEntity,
-  ClaimedTotal as ClaimedTotalEntity,
+  ClaimedPerPeriod as ClaimedPerPeriodEntity,
   OwnerChanged as OwnerChangedEntity,
-  OwnerNominated as OwnerNominatedEntity
+  OwnerNominated as OwnerNominatedEntity,
+  TotalClaimed as TotalClaimedEntity,
+  TotalClaimedPerFrom as TotalClaimedPerFromEntity,
+  TotalClaimedPerRecipient as TotalClaimedPerRecipientEntity
 } from "../generated/schema"
 
 // In The Graph, setting string in an Enumeration is still seen as i32 type by the compiler.
@@ -129,25 +129,6 @@ export function handleClaimed(event: ClaimedEvent): void {
   const method = getMethod(methodId)
   const methodName = getMethodName(methodId)
 
-  // ----------------------------------
-  // --- Update ClaimedTotal entity ---
-  // ----------------------------------
-
-  let claimedTotalEntity = ClaimedTotalEntity.load(one)
-  // In the Subgraph handler, using === always returns false. Please use == for comparison.
-  if (claimedTotalEntity == null) {
-    claimedTotalEntity = new ClaimedTotalEntity(one)
-    claimedTotalEntity.totalBalance = zero
-    claimedTotalEntity.totalClaimed = zero
-  }
-  claimedTotalEntity.totalBalance =
-    claimedTotalEntity.totalBalance.plus(balance)
-  claimedTotalEntity.totalClaimed =
-    claimedTotalEntity.totalClaimed.plus(oneBigInt)
-
-  // Save the entity to the store
-  claimedTotalEntity.save()
-
   // -----------------------------
   // --- Create Claimed entity ---
   // -----------------------------
@@ -162,7 +143,7 @@ export function handleClaimed(event: ClaimedEvent): void {
   claimedEntity.transactionMethodId = methodId
   claimedEntity.transactionMethodName = methodName
   claimedEntity.periods = []
-  claimedEntity.balances = []
+  claimedEntity.balancePerPeriod = []
 
   const periods: Array<BigInt | null> = []
   const balances: Array<BigInt> = []
@@ -208,8 +189,8 @@ export function handleClaimed(event: ClaimedEvent): void {
       claimedEntity.transactionMethodName = MethodName.execute
       periods.push(null)
       balances.push(balance)
-      // Employing i32.MAX_VALUE as the unknown period value.
-      nonNullPeriods.push(BigInt.fromI32(i32.MAX_VALUE))
+      // Employing u64.MAX_VALUE as the unknown period value.
+      nonNullPeriods.push(BigInt.fromU64(u64.MAX_VALUE))
       nonNullBalances.push(balance)
       break
     }
@@ -217,8 +198,8 @@ export function handleClaimed(event: ClaimedEvent): void {
       claimedEntity.transactionMethodName = MethodName.unknown
       periods.push(null)
       balances.push(balance)
-      // Employing i32.MAX_VALUE as the unknown period value.
-      nonNullPeriods.push(BigInt.fromI32(i32.MAX_VALUE))
+      // Employing u64.MAX_VALUE as the unknown period value.
+      nonNullPeriods.push(BigInt.fromU64(u64.MAX_VALUE))
       nonNullBalances.push(balance)
       break
     }
@@ -227,51 +208,76 @@ export function handleClaimed(event: ClaimedEvent): void {
 
   claimedEntity.periodsLength = BigInt.fromI32(periodsLength)
   claimedEntity.periods = nonNullPeriods
-  claimedEntity.balances = nonNullBalances
+  claimedEntity.balancePerPeriod = nonNullBalances
 
   // Save the entity to the store
   claimedEntity.save()
 
-  // ----------------------------------------
-  // --- Update ClaimedTotalByFrom entity ---
-  // ----------------------------------------
+  // ----------------------------------
+  // --- Update TotalClaimed entity ---
+  // ----------------------------------
 
-  let claimedTotalByFromEntity = ClaimedTotalByFromEntity.load(from)
-  if (claimedTotalByFromEntity == null) {
-    claimedTotalByFromEntity = new ClaimedTotalByFromEntity(from)
-    claimedTotalByFromEntity.from = from
-    claimedTotalByFromEntity.totalPeriod = zero
-    claimedTotalByFromEntity.totalBalance = zero
+  let totalClaimedEntity = TotalClaimedEntity.load(one)
+  // In the Subgraph handler, using === always returns false. Please use == for comparison.
+  if (totalClaimedEntity == null) {
+    totalClaimedEntity = new TotalClaimedEntity(one)
+    totalClaimedEntity.countClaimed = zero
+    totalClaimedEntity.countPeriod = zero
+    totalClaimedEntity.totalBalance = zero
   }
-  claimedTotalByFromEntity.totalBalance =
-    claimedTotalByFromEntity.totalBalance.plus(balance)
-  claimedTotalByFromEntity.totalPeriod =
-    claimedTotalByFromEntity.totalPeriod.plus(BigInt.fromI32(periodsLength))
+  totalClaimedEntity.countClaimed =
+    totalClaimedEntity.countClaimed.plus(oneBigInt)
+  totalClaimedEntity.countPeriod = totalClaimedEntity.countPeriod.plus(
+    BigInt.fromI32(periodsLength)
+  )
+  totalClaimedEntity.totalBalance =
+    totalClaimedEntity.totalBalance.plus(balance)
 
   // Save the entity to the store
-  claimedTotalByFromEntity.save()
+  totalClaimedEntity.save()
 
-  // ---------------------------------------------
-  // --- Update claimedTotalByRecipient entity ---
-  // ---------------------------------------------
+  // ----------------------------------------
+  // --- Update TotalClaimedByFrom entity ---
+  // ----------------------------------------
 
-  let claimedTotalByRecipientEntity =
-    ClaimedTotalByRecipientEntity.load(recipient)
-  if (claimedTotalByRecipientEntity == null) {
-    claimedTotalByRecipientEntity = new ClaimedTotalByRecipientEntity(recipient)
-    claimedTotalByRecipientEntity.recipient = recipient
-    claimedTotalByRecipientEntity.totalPeriod = zero
-    claimedTotalByRecipientEntity.totalBalance = zero
+  let totalClaimedPerFromEntity = TotalClaimedPerFromEntity.load(from)
+  if (totalClaimedPerFromEntity == null) {
+    totalClaimedPerFromEntity = new TotalClaimedPerFromEntity(from)
+    totalClaimedPerFromEntity.from = from
+    totalClaimedPerFromEntity.countPeriod = zero
+    totalClaimedPerFromEntity.totalBalance = zero
   }
-  claimedTotalByRecipientEntity.totalBalance =
-    claimedTotalByRecipientEntity.totalBalance.plus(balance)
-  claimedTotalByRecipientEntity.totalPeriod =
-    claimedTotalByRecipientEntity.totalPeriod.plus(
+  totalClaimedPerFromEntity.totalBalance =
+    totalClaimedPerFromEntity.totalBalance.plus(balance)
+  totalClaimedPerFromEntity.countPeriod =
+    totalClaimedPerFromEntity.countPeriod.plus(BigInt.fromI32(periodsLength))
+
+  // Save the entity to the store
+  totalClaimedPerFromEntity.save()
+
+  // ---------------------------------------------
+  // --- Update TotalClaimedPerRecipient entity ---
+  // ---------------------------------------------
+
+  let totalClaimedPerRecipientEntity =
+    TotalClaimedPerRecipientEntity.load(recipient)
+  if (totalClaimedPerRecipientEntity == null) {
+    totalClaimedPerRecipientEntity = new TotalClaimedPerRecipientEntity(
+      recipient
+    )
+    totalClaimedPerRecipientEntity.recipient = recipient
+    totalClaimedPerRecipientEntity.countPeriod = zero
+    totalClaimedPerRecipientEntity.totalBalance = zero
+  }
+  totalClaimedPerRecipientEntity.totalBalance =
+    totalClaimedPerRecipientEntity.totalBalance.plus(balance)
+  totalClaimedPerRecipientEntity.countPeriod =
+    totalClaimedPerRecipientEntity.countPeriod.plus(
       BigInt.fromI32(periodsLength)
     )
 
   // Save the entity to the store
-  claimedTotalByRecipientEntity.save()
+  totalClaimedPerRecipientEntity.save()
 
   // -------------------------------------
   // --- Create ClaimedByPeriod entity ---
@@ -280,19 +286,19 @@ export function handleClaimed(event: ClaimedEvent): void {
   for (let i: i32 = 0; i < periodsLength; i++) {
     const idWithIndex = concatIndex(id, i)
     // Create ClaimedByRecipient entity
-    const claimedByPeriodEntity = new ClaimedByPeriodEntity(idWithIndex)
-    claimedByPeriodEntity.from = from
-    claimedByPeriodEntity.recipient = recipient
-    claimedByPeriodEntity.period = periods[i]
-    claimedByPeriodEntity.balance = balances[i]
-    claimedByPeriodEntity.blockNumber = blockNumber
-    claimedByPeriodEntity.blockTimestamp = timestamp
-    claimedByPeriodEntity.transactionHash = transactionHash
-    claimedByPeriodEntity.transactionMethodId = methodId
-    claimedByPeriodEntity.transactionMethodName = methodName
+    const claimedPerPeriodEntity = new ClaimedPerPeriodEntity(idWithIndex)
+    claimedPerPeriodEntity.from = from
+    claimedPerPeriodEntity.recipient = recipient
+    claimedPerPeriodEntity.period = periods[i]
+    claimedPerPeriodEntity.balance = balances[i]
+    claimedPerPeriodEntity.blockNumber = blockNumber
+    claimedPerPeriodEntity.blockTimestamp = timestamp
+    claimedPerPeriodEntity.transactionHash = transactionHash
+    claimedPerPeriodEntity.transactionMethodId = methodId
+    claimedPerPeriodEntity.transactionMethodName = methodName
 
     // Save the entity to the store
-    claimedByPeriodEntity.save()
+    claimedPerPeriodEntity.save()
 
     // log.debug("[debug] period: {}, balance: {}", [
     //   periods[i] ? periods[i]!.toString() : "null",
