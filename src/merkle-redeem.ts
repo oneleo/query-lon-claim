@@ -1,12 +1,9 @@
 import {
-  Address,
-  bigInt,
   BigInt,
   ByteArray,
   Bytes,
   ethereum,
-  log,
-  store
+  log
 } from "@graphprotocol/graph-ts"
 import {
   Claimed as ClaimedEvent,

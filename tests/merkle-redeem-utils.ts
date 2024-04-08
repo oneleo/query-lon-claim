@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
+import { Address, BigInt, ethereum } from "@graphprotocol/graph-ts"
 import { newMockEvent } from "matchstick-as"
 import {
   Claimed,
@@ -7,8 +7,7 @@ import {
 } from "../generated/MerkleRedeem/MerkleRedeem"
 import {
   newMockEvent as customMockEvent,
-  CustomTransactions,
-  newTransaction
+  CustomTransactions
 } from "./newMockEvent"
 
 export function createClaimedEvent(
