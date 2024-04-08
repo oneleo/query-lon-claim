@@ -1,3 +1,5 @@
+# The MethodName enum stores method (function) names for known
+# or unknown transactions, triggering the Claimed event.
 enum MethodName {
   claimPeriod
   claimPeriods
@@ -5,6 +7,9 @@ enum MethodName {
   unknown
 }
 
+# Claimed entity stores recipient and balance data per Claimed event,
+# with 'periods' and 'balancePerPeriod' stored in arrays,
+# using u64.MAX_VALUE if a period is unknown.
 type Claimed @entity(immutable: true) {
   id: Bytes!
   from: Bytes! # address
@@ -20,6 +25,8 @@ type Claimed @entity(immutable: true) {
   transactionMethodName: MethodName!
 }
 
+# ClaimedPerPeriod entity stores recipient and balance data
+# per period and recipient address.
 type ClaimedPerPeriod @entity(immutable: true) {
   id: Bytes!
   from: Bytes! # address
@@ -33,6 +40,8 @@ type ClaimedPerPeriod @entity(immutable: true) {
   transactionMethodName: MethodName!
 }
 
+# TotalClaimed entity stores Claimed event occurrences, period count,
+# and cumulative balance claimed.
 type TotalClaimed @entity(immutable: false) {
   id: Bytes! # is always Bytes.fromI32(1)
   countClaimed: BigInt! # uint256
@@ -40,6 +49,8 @@ type TotalClaimed @entity(immutable: false) {
   totalBalance: BigInt! # uint256
 }
 
+# TotalClaimedPerFrom entity stores claimed period count
+# and total balance per 'from' address.
 type TotalClaimedPerFrom @entity(immutable: false) {
   id: Bytes! # equals the from
   from: Bytes! # address
@@ -47,6 +58,8 @@ type TotalClaimedPerFrom @entity(immutable: false) {
   totalBalance: BigInt! # uint256
 }
 
+# TotalClaimedPerRecipient entity stores claimed period count
+# and total balance per 'recipient' address.
 type TotalClaimedPerRecipient @entity(immutable: false) {
   id: Bytes! # equals the recipient
   recipient: Bytes! # address

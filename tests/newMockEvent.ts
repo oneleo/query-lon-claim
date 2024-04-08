@@ -119,12 +119,12 @@ export namespace CustomTransactions {
     return new ethereum.Transaction(
       defaultAddressBytes,
       defaultBigInt,
-      Address.fromString("0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"),
+      Address.fromString("0x32BF0Ea129625Be1EF65072eb0115CB91F4182Ba"), // from
       defaultAddress,
       defaultBigInt,
       defaultBigInt,
       defaultBigInt,
-      Bytes.fromHexString(TransactionInputSample.claimPeriodsSingleInput),
+      Bytes.fromHexString(TransactionInputSample.claimPeriodsSingleInput), // input
       defaultBigInt
     )
   }
@@ -135,12 +135,12 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        Address.fromString("0x2250dd2642F60730f5FDBfdd978626E61EBe864e"),
+        Address.fromString("0x2250dd2642F60730f5FDBfdd978626E61EBe864e"), // from
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
         defaultBigInt,
-        Bytes.fromHexString(TransactionInputSample.claimPeriodsMultipleInput),
+        Bytes.fromHexString(TransactionInputSample.claimPeriodsMultipleInput), // input
         defaultBigInt
       )
     }
@@ -150,12 +150,12 @@ export namespace CustomTransactions {
     return new ethereum.Transaction(
       defaultAddressBytes,
       defaultBigInt,
-      Address.fromString("0x4eD51224672aaD35d50F2ee49b0fdC9958618d38"),
+      Address.fromString("0x4eD51224672aaD35d50F2ee49b0fdC9958618d38"), // from
       defaultAddress,
       defaultBigInt,
       defaultBigInt,
       defaultBigInt,
-      Bytes.fromHexString(TransactionInputSample.executeInput),
+      Bytes.fromHexString(TransactionInputSample.executeInput), // input
       defaultBigInt
     )
   }
@@ -166,12 +166,12 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        Address.fromString("0x789BCf674A8f5800840823a51aA45fb8bcbC323A"),
+        Address.fromString("0x789BCf674A8f5800840823a51aA45fb8bcbC323A"), // from
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
         defaultBigInt,
-        Bytes.fromHexString(TransactionInputSample.unknownInput_0xa2d41b9e),
+        Bytes.fromHexString(TransactionInputSample.unknownInput_0xa2d41b9e), // input
         defaultBigInt
       )
     }
@@ -182,12 +182,12 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        Address.fromString("0x409bEDe01f0c2DDbffa5dcDf5c4b7d97E1b5080F"),
+        Address.fromString("0x409bEDe01f0c2DDbffa5dcDf5c4b7d97E1b5080F"), // from
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
         defaultBigInt,
-        Bytes.fromHexString(TransactionInputSample.unknownInput_0x477564b4),
+        Bytes.fromHexString(TransactionInputSample.unknownInput_0x477564b4), // input
         defaultBigInt
       )
     }
@@ -198,12 +198,12 @@ export namespace CustomTransactions {
       return new ethereum.Transaction(
         defaultAddressBytes,
         defaultBigInt,
-        Address.fromString("0x0a70AF3B3bD506465bB73E8d9F738111ff8b0D62"),
+        Address.fromString("0x0a70AF3B3bD506465bB73E8d9F738111ff8b0D62"), // from
         defaultAddress,
         defaultBigInt,
         defaultBigInt,
         defaultBigInt,
-        Bytes.fromHexString(TransactionInputSample.unknownInput_0x8607c220),
+        Bytes.fromHexString(TransactionInputSample.unknownInput_0x8607c220), // input
         defaultBigInt
       )
     }

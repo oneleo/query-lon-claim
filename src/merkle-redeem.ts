@@ -92,13 +92,12 @@ export const getMethodName = (methodId: Bytes): string => {
   return MethodName.unknown
 }
 
+// Prepend a "tuple" prefix (function params are arrays, not tuples)
+// Refer: https://ethereum.stackexchange.com/questions/114582/the-graph-nodes-cant-decode-abi-encoded-data-containing-arrays
 export const toTuple = (calldata: Uint8Array): Bytes => {
-  // Prepend a "tuple" prefix (function params are arrays, not tuples)
-  // Refer: https://ethereum.stackexchange.com/questions/114582/the-graph-nodes-cant-decode-abi-encoded-data-containing-arrays
   const tuplePrefix = ByteArray.fromHexString(
     "0x0000000000000000000000000000000000000000000000000000000000000020"
   )
-
   const calldataAsTuple = new Uint8Array(tuplePrefix.length + calldata.length)
 
   // Concat prefix & original calldata
@@ -110,7 +109,6 @@ export const toTuple = (calldata: Uint8Array): Bytes => {
 
 export function handleClaimed(event: ClaimedEvent): void {
   const id = getEventId(event)
-  //   const id = event.transaction.hash.concatI32(event.logIndex.toI32())
   const zero = BigInt.fromU32(0)
   const one = Bytes.fromI32(1)
   const oneBigInt = BigInt.fromI32(1)
@@ -133,6 +131,9 @@ export function handleClaimed(event: ClaimedEvent): void {
   // --- Create Claimed entity ---
   // -----------------------------
 
+  // Claimed entity stores recipient and balance data per Claimed event,
+  // with 'periods' and 'balancePerPeriod' stored in arrays,
+  // using u64.MAX_VALUE if a period is unknown.
   const claimedEntity = new ClaimedEntity(id)
   claimedEntity.from = from
   claimedEntity.recipient = recipient
@@ -207,6 +208,8 @@ export function handleClaimed(event: ClaimedEvent): void {
   // --- Update TotalClaimed entity ---
   // ----------------------------------
 
+  // TotalClaimed entity stores Claimed event occurrences, period count,
+  // and cumulative balance claimed.
   let totalClaimedEntity = TotalClaimedEntity.load(one)
   // In the Subgraph handler, using === always returns false. Please use == for comparison.
   if (totalClaimedEntity == null) {
@@ -226,10 +229,12 @@ export function handleClaimed(event: ClaimedEvent): void {
   // Save the entity to the store
   totalClaimedEntity.save()
 
-  // ----------------------------------------
-  // --- Update TotalClaimedByFrom entity ---
-  // ----------------------------------------
+  // -----------------------------------------
+  // --- Update TotalClaimedPerFrom entity ---
+  // -----------------------------------------
 
+  // TotalClaimedPerFrom entity stores claimed period count
+  // and total balance per 'from' address.
   let totalClaimedPerFromEntity = TotalClaimedPerFromEntity.load(from)
   if (totalClaimedPerFromEntity == null) {
     totalClaimedPerFromEntity = new TotalClaimedPerFromEntity(from)
@@ -245,10 +250,12 @@ export function handleClaimed(event: ClaimedEvent): void {
   // Save the entity to the store
   totalClaimedPerFromEntity.save()
 
-  // ---------------------------------------------
+  // ----------------------------------------------
   // --- Update TotalClaimedPerRecipient entity ---
-  // ---------------------------------------------
+  // ----------------------------------------------
 
+  // TotalClaimedPerRecipient entity stores claimed period count
+  // and total balance per 'recipient' address.
   let totalClaimedPerRecipientEntity =
     TotalClaimedPerRecipientEntity.load(recipient)
   if (totalClaimedPerRecipientEntity == null) {
@@ -269,13 +276,15 @@ export function handleClaimed(event: ClaimedEvent): void {
   // Save the entity to the store
   totalClaimedPerRecipientEntity.save()
 
-  // -------------------------------------
-  // --- Create ClaimedByPeriod entity ---
-  // -------------------------------------
+  // --------------------------------------
+  // --- Create ClaimedPerPeriod entity ---
+  // --------------------------------------
 
   for (let i: i32 = 0; i < periodsLength; i++) {
     const idWithIndex = concatIndex(id, i)
-    // Create ClaimedByRecipient entity
+
+    // ClaimedPerPeriod entity stores recipient and balance data
+    // per period and recipient address.
     const claimedPerPeriodEntity = new ClaimedPerPeriodEntity(idWithIndex)
     claimedPerPeriodEntity.from = from
     claimedPerPeriodEntity.recipient = recipient
